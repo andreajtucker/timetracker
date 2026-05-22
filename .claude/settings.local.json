@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(psql -l)",
+      "Read(//usr/lib/**)",
+      "Read(//var/lib/**)",
+      "Bash(node --input-type=module --eval ' *)",
+      "Bash(node *)",
+      "Bash(git push *)"
+    ]
+  }
+}

@@ -1,0 +1,80 @@
+import express from 'express';
+import pool from '../db.js';
+
+const router = express.Router();
+
+router.get('/active', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM time_entries WHERE end_time IS NULL'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Last completed entry per project (all projects)
+router.get('/last', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT DISTINCT ON (project_id) *,
+        EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds
+      FROM time_entries
+      WHERE end_time IS NOT NULL
+      ORDER BY project_id, start_time DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/', async (req, res) => {
+  try {
+    const { project_id } = req.body;
+    const existing = await pool.query(
+      'SELECT * FROM time_entries WHERE project_id = $1 AND end_time IS NULL',
+      [project_id]
+    );
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Timer already running for this project' });
+    }
+    const result = await pool.query(
+      'INSERT INTO time_entries (project_id, start_time) VALUES ($1, NOW()) RETURNING *',
+      [project_id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/:id/stop', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'UPDATE time_entries SET end_time = NOW() WHERE id = $1 RETURNING *',
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Entry not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/:id/description', async (req, res) => {
+  try {
+    const { description } = req.body;
+    const result = await pool.query(
+      'UPDATE time_entries SET description = $1 WHERE id = $2 RETURNING *',
+      [description, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Entry not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;
