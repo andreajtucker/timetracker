@@ -81,8 +81,25 @@
 
 .card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+}
+
+.card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.project-company {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .project-name {
@@ -295,10 +312,6 @@
 }
 .plus-icon:hover { border-color: var(--primary); color: var(--primary); }
 
-.project-count {
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-}
 
 /* ── Description Modal ── */
 .modal-overlay {

@@ -46,7 +46,10 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
   return (
     <div className={`project-card${isRunning ? ' running' : ''}`}>
       <div className="card-header">
-        <span className="project-name" title={project.name}>{project.name}</span>
+        <div className="card-title">
+          <span className="project-name" title={project.name}>{project.name}</span>
+          {project.company && <span className="project-company">{project.company}</span>}
+        </div>
         {!isRunning && (
           <button className="delete-btn" onClick={() => onDelete(project.id)} title="Remove project">✕</button>
         )}

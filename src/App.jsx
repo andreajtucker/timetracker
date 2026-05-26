@@ -154,7 +154,10 @@ export default function App() {
                     onAddDescription={handleAddDescription}
                   />
                 ))}
-                <AddProjectForm projectCount={projects.length} onAdd={handleProjectAdded} />
+                <AddProjectForm
+                  companies={[...new Set(projects.map(p => p.company).filter(Boolean))]}
+                  onAdd={handleProjectAdded}
+                />
               </div>
             )}
           </>

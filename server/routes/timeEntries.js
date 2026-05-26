@@ -53,7 +53,8 @@ router.post('/', async (req, res) => {
 router.put('/:id/stop', async (req, res) => {
   try {
     const result = await pool.query(
-      'UPDATE time_entries SET end_time = NOW() WHERE id = $1 RETURNING *',
+      `UPDATE time_entries SET end_time = NOW() WHERE id = $1
+       RETURNING *, EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds`,
       [req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Entry not found' });

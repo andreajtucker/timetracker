@@ -15,15 +15,11 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, company } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'Project name is required' });
-    const count = await pool.query('SELECT COUNT(*) FROM projects');
-    if (parseInt(count.rows[0].count) >= 10) {
-      return res.status(400).json({ error: 'Maximum of 10 projects allowed' });
-    }
     const result = await pool.query(
-      'INSERT INTO projects (name) VALUES ($1) RETURNING *',
-      [name.trim()]
+      'INSERT INTO projects (name, company) VALUES ($1, $2) RETURNING *',
+      [name.trim(), company?.trim() || null]
     );
     res.json(result.rows[0]);
   } catch (err) {
