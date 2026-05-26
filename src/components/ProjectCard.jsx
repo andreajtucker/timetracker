@@ -5,7 +5,7 @@ const WARN_SECONDS = 55 * 60;
 
 export default function ProjectCard({ project, activeEntry, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription }) {
   const [elapsed, setElapsed] = useState(0);
-  const [warned, setWarned] = useState(false);
+  const warnedRef = useRef(false);
   const [description, setDescription] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -31,8 +31,8 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
       const tick = () => {
         const secs = (Date.now() - new Date(activeEntry.start_time).getTime()) / 1000;
         setElapsed(secs);
-        if (secs >= WARN_SECONDS && !warned) {
-          setWarned(true);
+        if (secs >= WARN_SECONDS && !warnedRef.current) {
+          warnedRef.current = true;
           triggerWarning(project.name);
         }
       };
@@ -41,7 +41,7 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
     } else {
       clearInterval(intervalRef.current);
       setElapsed(0);
-      setWarned(false);
+      warnedRef.current = false;
       setDescription('');
     }
     return () => clearInterval(intervalRef.current);
@@ -180,10 +180,10 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
               <span className="session-duration">{formatDuration(lastEntry.duration_seconds)}</span>
             </div>
             {lastEntry.description ? (
-              <button className="session-desc add-desc-btn" title="Edit description"
-                onClick={() => onAddDescription(lastEntry, project.name)}>
-                {lastEntry.description}
-              </button>
+              <div className="session-desc-row">
+                <span className="session-desc" title={lastEntry.description}>{lastEntry.description}</span>
+                <button className="edit-desc-btn" onClick={() => onAddDescription(lastEntry, project.name)} title="Edit description">✏</button>
+              </div>
             ) : (
               <button className="add-desc-btn" onClick={() => onAddDescription(lastEntry, project.name)}>
                 + Add description

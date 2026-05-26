@@ -25,16 +25,18 @@
 }
 
 .nav-btn {
-  padding: 8px 20px;
-  border-radius: 8px;
+  padding: 8px 16px;
   font-size: 0.95rem;
   font-weight: 500;
   background: transparent;
   color: var(--text-muted);
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
 }
 
-.nav-btn:hover { background: var(--bg); color: var(--text); }
-.nav-btn.active { background: var(--primary); color: #fff; }
+.nav-btn:hover { color: var(--text); background: transparent; }
+.nav-btn.active { color: var(--primary); font-weight: 600; border-bottom-color: var(--primary); background: transparent; }
 
 .app-body {
   max-width: 1200px;
@@ -298,6 +300,25 @@
   text-overflow: ellipsis;
 }
 
+.session-desc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.edit-desc-btn {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.edit-desc-btn:hover { color: var(--primary); }
+
 .add-desc-btn {
   background: none;
   color: var(--primary);
@@ -461,16 +482,21 @@
 }
 
 .period-btn {
-  padding: 8px 16px;
+  padding: 7px 14px;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 500;
-  background: var(--card);
+  background: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
 }
-.period-btn:hover { border-color: var(--primary); color: var(--primary); }
-.period-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.period-btn:hover { color: var(--text); background: var(--card); border-color: var(--border); }
+.period-btn.active {
+  color: var(--primary);
+  font-weight: 600;
+  background: rgba(37, 99, 235, 0.07);
+  border-color: rgba(37, 99, 235, 0.2);
+}
 
 .report-filters {
   display: flex;
@@ -523,7 +549,7 @@
 
 .report-header-row {
   display: grid;
-  grid-template-columns: 1fr 120px 120px 60px;
+  grid-template-columns: 1fr 140px 110px 120px 50px;
   padding: 12px 20px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
@@ -542,7 +568,7 @@
 
 .report-project-summary {
   display: grid;
-  grid-template-columns: 1fr 120px 120px 60px;
+  grid-template-columns: 1fr 140px 110px 120px 50px;
   padding: 16px 20px;
   align-items: center;
   cursor: pointer;
@@ -550,6 +576,32 @@
 }
 
 .report-project-summary:hover { background: var(--bg); }
+
+.sort-header {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  text-align: left;
+}
+.sort-header:hover { color: var(--text); }
+.sort-header.active { color: var(--primary); }
+
+.sort-arrow { font-size: 0.7rem; }
+
+.report-date {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
 
 .report-project-name { font-weight: 600; font-size: 0.95rem; }
 
@@ -605,7 +657,7 @@
 
 .report-total-row {
   display: grid;
-  grid-template-columns: 1fr 120px 120px 60px;
+  grid-template-columns: 1fr 140px 110px 120px 50px;
   padding: 14px 20px;
   background: #eff6ff;
   border-top: 2px solid var(--border);
@@ -662,6 +714,12 @@
   text-align: center;
   padding: 40px;
   color: var(--text-muted);
+}
+
+.reports-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 36px 0;
 }
 
 /* ── Dashboard ── */

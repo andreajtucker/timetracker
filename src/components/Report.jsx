@@ -8,7 +8,16 @@ const PERIODS = [
   { id: 'custom', label: 'Custom Range' },
 ];
 
-export default function Report() {
+function getDateRange(entries) {
+  if (!entries.length) return '—';
+  const times = entries.map(e => new Date(e.start_time).getTime());
+  const min = new Date(Math.min(...times));
+  const max = new Date(Math.max(...times));
+  const fmt = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return fmt(min) === fmt(max) ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
+}
+
+export default function Report({ filterCompany, filterProjectId }) {
   const [period, setPeriod] = useState('week');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -16,8 +25,8 @@ export default function Report() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState({});
-  const [filterCompany, setFilterCompany] = useState('');
-  const [filterProject, setFilterProject] = useState('');
+  const [sortBy, setSortBy] = useState('project');
+  const [sortDir, setSortDir] = useState('asc');
 
   useEffect(() => {
     if (period !== 'custom') loadReport();
@@ -37,8 +46,6 @@ export default function Report() {
       if (!res.ok) throw new Error(json.error || 'Failed to load report');
       setData(json);
       setExpanded({});
-      setFilterCompany('');
-      setFilterProject('');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -46,24 +53,60 @@ export default function Report() {
     }
   }
 
+  function toggleSort(col) {
+    if (sortBy === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(col);
+      setSortDir('asc');
+    }
+  }
+
   function toggleExpand(id) {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
   }
 
-  const companies = [...new Set(data.map(p => p.project_company).filter(Boolean))].sort();
-  const projectsForCompany = filterCompany
-    ? data.filter(p => p.project_company === filterCompany)
-    : data;
-
   const filteredData = data.filter(p => {
     if (filterCompany && p.project_company !== filterCompany) return false;
-    if (filterProject && p.project_id !== Number(filterProject)) return false;
+    if (filterProjectId && p.project_id !== Number(filterProjectId)) return false;
     return true;
+  });
+
+  const sortedData = [...filteredData].sort((a, b) => {
+    let av, bv;
+    if (sortBy === 'project') {
+      av = a.project_name.toLowerCase();
+      bv = b.project_name.toLowerCase();
+    } else if (sortBy === 'date') {
+      av = a.entries.length ? Math.max(...a.entries.map(e => new Date(e.start_time).getTime())) : 0;
+      bv = b.entries.length ? Math.max(...b.entries.map(e => new Date(e.start_time).getTime())) : 0;
+    } else if (sortBy === 'time' || sortBy === 'billed') {
+      av = a.total_seconds;
+      bv = b.total_seconds;
+    }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const totalSeconds = filteredData.reduce((s, p) => s + p.total_seconds, 0);
   const totalBilled = filteredData.reduce((s, p) => s + billedHours(p.total_seconds), 0);
   const hasData = filteredData.some(p => p.entries.length > 0);
+
+  function SortHeader({ col, label }) {
+    const active = sortBy === col;
+    return (
+      <button
+        className={`sort-header${active ? ' active' : ''}`}
+        onClick={() => toggleSort(col)}
+      >
+        {label}
+        <span className="sort-arrow">
+          {active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <div>
@@ -98,31 +141,6 @@ export default function Report() {
         )}
       </div>
 
-      {data.length > 0 && (
-        <div className="report-filters">
-          {companies.length > 0 && (
-            <select
-              className="filter-select"
-              value={filterCompany}
-              onChange={e => { setFilterCompany(e.target.value); setFilterProject(''); }}
-            >
-              <option value="">All Companies</option>
-              {companies.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          )}
-          <select
-            className="filter-select"
-            value={filterProject}
-            onChange={e => setFilterProject(e.target.value)}
-          >
-            <option value="">All Projects</option>
-            {projectsForCompany.map(p => (
-              <option key={p.project_id} value={p.project_id}>{p.project_name}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
       {loading ? (
         <div className="loading">Loading report…</div>
       ) : error ? (
@@ -136,13 +154,14 @@ export default function Report() {
       ) : (
         <div className="report-table">
           <div className="report-header-row">
-            <span>Project</span>
-            <span>Time Logged</span>
-            <span>Billed Hours</span>
-            <span>Details</span>
+            <SortHeader col="project" label="Project" />
+            <SortHeader col="date" label="Date Logged" />
+            <SortHeader col="time" label="Time Logged" />
+            <SortHeader col="billed" label="Billed Hours" />
+            <span />
           </div>
 
-          {filteredData.map(project => (
+          {sortedData.map(project => (
             <div key={project.project_id} className="report-project-row">
               <div
                 className="report-project-summary"
@@ -154,6 +173,7 @@ export default function Report() {
                     <div className="report-project-company">{project.project_company}</div>
                   )}
                 </div>
+                <span className="report-date">{getDateRange(project.entries)}</span>
                 <span className="report-hours">{formatDuration(project.total_seconds)}</span>
                 <span className="report-billed">
                   {billedHours(project.total_seconds)} hr{billedHours(project.total_seconds) !== 1 ? 's' : ''}
@@ -190,6 +210,7 @@ export default function Report() {
           {hasData && (
             <div className="report-total-row">
               <span>Total</span>
+              <span />
               <span>{formatDuration(totalSeconds)}</span>
               <span>{totalBilled} hr{totalBilled !== 1 ? 's' : ''} billed</span>
               <span />

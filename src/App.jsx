@@ -4,8 +4,7 @@ import ProjectCard from './components/ProjectCard';
 import ArchivedCard from './components/ArchivedCard';
 import AddProjectForm from './components/AddProjectForm';
 import DescriptionModal from './components/DescriptionModal';
-import Report from './components/Report';
-import Dashboard from './components/Dashboard';
+import ReportsPage from './components/ReportsPage';
 
 export default function App() {
   const [tab, setTab] = useState('tracker');
@@ -179,9 +178,6 @@ export default function App() {
           <button className={`nav-btn${tab === 'reports' ? ' active' : ''}`} onClick={() => setTab('reports')}>
             Reports
           </button>
-          <button className={`nav-btn${tab === 'dashboard' ? ' active' : ''}`} onClick={() => setTab('dashboard')}>
-            Dashboard
-          </button>
         </nav>
       </header>
 
@@ -244,18 +240,9 @@ export default function App() {
         {tab === 'reports' && (
           <>
             <div className="tracker-header">
-              <h2>Time Reports</h2>
+              <h2>Reports</h2>
             </div>
-            <Report />
-          </>
-        )}
-
-        {tab === 'dashboard' && (
-          <>
-            <div className="tracker-header">
-              <h2>Dashboard</h2>
-            </div>
-            <Dashboard />
+            <ReportsPage />
           </>
         )}
       </main>

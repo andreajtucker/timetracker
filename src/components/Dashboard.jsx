@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
 import { formatDuration, billedHours } from '../utils/time';
 
-export default function Dashboard() {
+export default function Dashboard({ filterCompany, filterProjectId }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     async function load() {
+      setLoading(true);
+      setError(null);
       try {
-        const res = await fetch('/api/reports/summary');
+        const params = new URLSearchParams();
+        if (filterCompany) params.set('company', filterCompany);
+        if (filterProjectId) params.set('project_id', filterProjectId);
+        const res = await fetch(`/api/reports/summary?${params}`);
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Failed to load summary');
         setSummary(json);
@@ -20,7 +25,7 @@ export default function Dashboard() {
       }
     }
     load();
-  }, []);
+  }, [filterCompany, filterProjectId]);
 
   if (loading) return <div className="loading">Loading dashboard…</div>;
   if (error) return <div className="report-table"><div className="report-empty">Error: {error}</div></div>;
