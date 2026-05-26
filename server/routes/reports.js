@@ -38,7 +38,10 @@ function getDateRange(period, start_date, end_date) {
 
 router.get('/summary', async (req, res) => {
   try {
-    const company = req.query.company || null;
+    const companyRaw = req.query.company;
+    const companies = companyRaw
+      ? (Array.isArray(companyRaw) ? companyRaw : [companyRaw])
+      : [];
     const projectId = req.query.project_id ? parseInt(req.query.project_id) : null;
     const { period, start_date, end_date } = req.query;
     const { start, end } = getDateRange(period, start_date, end_date);
@@ -50,11 +53,12 @@ router.get('/summary', async (req, res) => {
           COUNT(DISTINCT te.project_id) AS project_count
         FROM time_entries te
         JOIN projects p ON p.id = te.project_id
+        LEFT JOIN companies c ON c.id = p.company_id
         WHERE te.end_time IS NOT NULL
           AND te.start_time >= $3 AND te.start_time <= $4
-          AND ($1::text IS NULL OR p.company_id = (SELECT id FROM companies WHERE name = $1))
+          AND (cardinality($1::text[]) = 0 OR c.name = ANY($1::text[]))
           AND ($2::int IS NULL OR te.project_id = $2)
-      `, [company, projectId, start, end]),
+      `, [companies, projectId, start, end]),
       pool.query(`
         SELECT
           c.name AS company,
@@ -65,11 +69,11 @@ router.get('/summary', async (req, res) => {
         LEFT JOIN companies c ON c.id = p.company_id
         WHERE te.end_time IS NOT NULL
           AND te.start_time >= $3 AND te.start_time <= $4
-          AND ($1::text IS NULL OR c.name = $1)
+          AND (cardinality($1::text[]) = 0 OR c.name = ANY($1::text[]))
           AND ($2::int IS NULL OR te.project_id = $2)
         GROUP BY c.name
         ORDER BY total_seconds DESC
-      `, [company, projectId, start, end]),
+      `, [companies, projectId, start, end]),
     ]);
 
     res.json({

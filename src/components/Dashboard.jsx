@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatDuration, billedHours } from '../utils/time';
 
-export default function Dashboard({ filterCompany, filterProjectId, period, startDate, endDate }) {
+export default function Dashboard({ filterCompanies = [], filterProjectId, period, startDate, endDate }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,7 +14,7 @@ export default function Dashboard({ filterCompany, filterProjectId, period, star
       setError(null);
       try {
         const params = new URLSearchParams();
-        if (filterCompany) params.set('company', filterCompany);
+        filterCompanies.forEach(c => params.append('company', c));
         if (filterProjectId) params.set('project_id', filterProjectId);
         if (period) params.set('period', period);
         if (period === 'custom') {
@@ -32,7 +32,7 @@ export default function Dashboard({ filterCompany, filterProjectId, period, star
       }
     }
     load();
-  }, [filterCompany, filterProjectId, period, startDate, endDate]);
+  }, [filterCompanies.join(','), filterProjectId, period, startDate, endDate]);
 
   if (loading) return <div className="loading">Loading dashboard…</div>;
   if (error) return <div className="report-table"><div className="report-empty">Error: {error}</div></div>;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Dashboard from './Dashboard';
 import Report from './Report';
+import MultiSelectDropdown from './MultiSelectDropdown';
 
 const PERIODS = [
   { id: 'week', label: 'This Week' },
@@ -10,7 +11,7 @@ const PERIODS = [
 ];
 
 export default function ReportsPage() {
-  const [filterCompany, setFilterCompany] = useState('');
+  const [filterCompanies, setFilterCompanies] = useState([]);
   const [filterProjectId, setFilterProjectId] = useState('');
   const [companies, setCompanies] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -31,9 +32,14 @@ export default function ReportsPage() {
     });
   }, []);
 
-  const projectsForCompany = filterCompany
-    ? projects.filter(p => p.company === filterCompany)
+  const projectsForCompany = filterCompanies.length > 0
+    ? projects.filter(p => filterCompanies.includes(p.company))
     : projects;
+
+  function handleCompaniesChange(val) {
+    setFilterCompanies(val);
+    setFilterProjectId('');
+  }
 
   function handlePeriodChange(p) {
     setPeriod(p);
@@ -47,14 +53,12 @@ export default function ReportsPage() {
     <div>
       <div className="report-filters">
         {companies.length > 0 && (
-          <select
-            className="filter-select"
-            value={filterCompany}
-            onChange={e => { setFilterCompany(e.target.value); setFilterProjectId(''); }}
-          >
-            <option value="">All Companies</option>
-            {companies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-          </select>
+          <MultiSelectDropdown
+            options={companies.map(c => ({ value: c.name, label: c.name }))}
+            selected={filterCompanies}
+            onChange={handleCompaniesChange}
+            placeholder="All Companies"
+          />
         )}
         <select
           className="filter-select"
@@ -106,7 +110,7 @@ export default function ReportsPage() {
       </div>
 
       <Dashboard
-        filterCompany={filterCompany}
+        filterCompanies={filterCompanies}
         filterProjectId={filterProjectId}
         period={period}
         startDate={committedStart}
@@ -114,7 +118,7 @@ export default function ReportsPage() {
       />
       <div className="reports-divider" />
       <Report
-        filterCompany={filterCompany}
+        filterCompanies={filterCompanies}
         filterProjectId={filterProjectId}
         period={period}
         startDate={committedStart}

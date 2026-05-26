@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import CompanyGroup from './components/CompanyGroup';
 import ArchivedCard from './components/ArchivedCard';
@@ -6,58 +6,7 @@ import AddProjectForm from './components/AddProjectForm';
 import DescriptionModal from './components/DescriptionModal';
 import ReportsPage from './components/ReportsPage';
 import Settings from './components/Settings';
-
-function CompanyMultiSelect({ companies, selected, onChange }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    function handleOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    if (open) document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, [open]);
-
-  const label = selected.length === 0
-    ? 'All Companies'
-    : selected.length === 1
-    ? selected[0]
-    : `${selected.length} companies`;
-
-  function toggle(name) {
-    onChange(selected.includes(name)
-      ? selected.filter(n => n !== name)
-      : [...selected, name]
-    );
-  }
-
-  return (
-    <div className="multiselect" ref={ref}>
-      <button className="multiselect-btn" onClick={() => setOpen(o => !o)}>
-        <span>{label}</span>
-        <span className="multiselect-arrow">▾</span>
-      </button>
-      {open && (
-        <div className="multiselect-dropdown">
-          {selected.length > 0 && (
-            <button className="multiselect-clear" onClick={() => onChange([])}>Clear selection</button>
-          )}
-          {companies.map(c => (
-            <label key={c.id} className="multiselect-option">
-              <input
-                type="checkbox"
-                checked={selected.includes(c.name)}
-                onChange={() => toggle(c.name)}
-              />
-              {c.name}
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import MultiSelectDropdown from './components/MultiSelectDropdown';
 
 export default function App() {
   const [tab, setTab] = useState('tracker');
@@ -273,10 +222,11 @@ export default function App() {
             <div className="tracker-header">
               <h2>Projects</h2>
               {companies.length > 0 && (
-                <CompanyMultiSelect
-                  companies={companies}
+                <MultiSelectDropdown
+                  options={companies.map(c => ({ value: c.name, label: c.name }))}
                   selected={trackerCompanies}
                   onChange={setTrackerCompanies}
+                  placeholder="All Companies"
                 />
               )}
             </div>

@@ -10,7 +10,7 @@ function getDateRange(entries) {
   return fmt(min) === fmt(max) ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
 }
 
-export default function Report({ filterCompany, filterProjectId, period, startDate, endDate }) {
+export default function Report({ filterCompanies = [], filterProjectId, period, startDate, endDate }) {
   const [projects, setProjects] = useState([]);
   const [companySessions, setCompanySessions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -52,9 +52,8 @@ export default function Report({ filterCompany, filterProjectId, period, startDa
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
   }
 
-  // Apply project-level filters
   const filteredProjects = projects.filter(p => {
-    if (filterCompany && p.project_company !== filterCompany) return false;
+    if (filterCompanies.length > 0 && !filterCompanies.includes(p.project_company)) return false;
     if (filterProjectId && p.project_id !== Number(filterProjectId)) return false;
     return p.entries.length > 0;
   });
@@ -83,12 +82,10 @@ export default function Report({ filterCompany, filterProjectId, period, startDa
     groupMap[key].projects.push(p);
   }
 
-  // Sort projects within each group by name
   for (const g of Object.values(groupMap)) {
     g.projects.sort((a, b) => a.project_name.localeCompare(b.project_name));
   }
 
-  // Sort company groups
   const groups = Object.values(groupMap).sort((a, b) => {
     let av, bv;
     if (sortBy === 'company') {
@@ -102,7 +99,7 @@ export default function Report({ filterCompany, filterProjectId, period, startDa
     } else if (sortBy === 'time') {
       av = a.total_logged_seconds;
       bv = b.total_logged_seconds;
-    } else { // billed
+    } else {
       av = a.session ? a.session.total_session_seconds : 0;
       bv = b.session ? b.session.total_session_seconds : 0;
     }
@@ -113,7 +110,7 @@ export default function Report({ filterCompany, filterProjectId, period, startDa
 
   const totalLoggedSeconds = filteredProjects.reduce((s, p) => s + p.total_seconds, 0);
   const totalSessionSeconds = companySessions
-    .filter(cs => !filterCompany || cs.company_name === filterCompany)
+    .filter(cs => filterCompanies.length === 0 || filterCompanies.includes(cs.company_name))
     .reduce((s, cs) => s + cs.total_session_seconds, 0);
 
   const hasData = groups.length > 0;
@@ -177,16 +174,27 @@ export default function Report({ filterCompany, filterProjectId, period, startDa
 
           {expanded[group.key] && (
             <div className="report-entries">
-              <div className="report-project-subheader">
-                <span>Project</span>
-                <span>Date Logged</span>
-                <span>Time Logged</span>
-              </div>
               {group.projects.map(project => (
-                <div key={project.project_id} className="report-project-subrow">
-                  <span className="report-subrow-name">{project.project_name}</span>
-                  <span className="report-date">{getDateRange(project.entries)}</span>
-                  <span className="entry-duration">{formatDuration(project.total_seconds)}</span>
+                <div key={project.project_id} className="report-project-subgroup">
+                  <div className="report-project-subheader-row">
+                    <span className="report-subrow-name">{project.project_name}</span>
+                    <span className="report-date">{getDateRange(project.entries)}</span>
+                    <span className="entry-duration">{formatDuration(project.total_seconds)}</span>
+                  </div>
+                  {project.entries.map(entry => (
+                    <div key={entry.id} className="report-entry-row">
+                      <div className="report-entry-timestamps">
+                        <span>{formatDateTime(entry.start_time)}</span>
+                        <span className="report-entry-arrow">→</span>
+                        <span>{formatDateTime(entry.end_time)}</span>
+                      </div>
+                      <span className="report-entry-duration">{formatDuration(entry.duration_seconds)}</span>
+                      {entry.description
+                        ? <span className="entry-desc">{entry.description}</span>
+                        : <span className="entry-desc-empty">No description</span>
+                      }
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
