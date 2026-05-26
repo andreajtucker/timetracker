@@ -12,21 +12,23 @@ export default function App() {
   const [projects, setProjects] = useState([]);
   const [archivedProjects, setArchivedProjects] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [trackerCompany, setTrackerCompany] = useState('');
   const [companies, setCompanies] = useState([]);
   const [activeEntries, setActiveEntries] = useState({});
   const [lastEntries, setLastEntries] = useState({});
   const [descModal, setDescModal] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    () => localStorage.getItem('notificationsEnabled') !== 'false'
+  );
 
   useEffect(() => {
-    requestNotificationPermission();
     loadData();
   }, []);
 
-  async function requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-      await Notification.requestPermission();
-    }
+  function handleToggleNotifications(val) {
+    setNotificationsEnabled(val);
+    localStorage.setItem('notificationsEnabled', val);
   }
 
   async function loadData() {
@@ -183,10 +185,15 @@ export default function App() {
     return a.company.name.localeCompare(b.company.name);
   });
 
+  const filteredGroups = trackerCompany
+    ? groups.filter(g => g.company?.name === trackerCompany)
+    : groups;
+
   const commonCardProps = {
     companies,
     activeEntries,
     lastEntries,
+    notificationsEnabled,
     onStart: handleStart,
     onStop: handleStop,
     onDelete: handleDelete,
@@ -211,12 +218,27 @@ export default function App() {
       <main className="app-body">
         {tab === 'tracker' && (
           <>
-            <div className="tracker-header"><h2>Projects</h2></div>
+            <div className="tracker-header">
+              <h2>Projects</h2>
+              {companies.length > 0 && (
+                <select
+                  className="filter-select"
+                  value={trackerCompany}
+                  onChange={e => setTrackerCompany(e.target.value)}
+                >
+                  <option value="">All Companies</option>
+                  {companies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+              )}
+            </div>
             {loading ? (
               <div className="loading">Loading…</div>
             ) : (
               <>
-                {groups.map(group => (
+                <div className="projects-grid" style={{ marginBottom: filteredGroups.length ? 32 : 0 }}>
+                  <AddProjectForm companies={companies} onAdd={handleProjectAdded} />
+                </div>
+                {filteredGroups.map(group => (
                   <CompanyGroup
                     key={group.company?.id ?? '__none__'}
                     company={group.company}
@@ -224,9 +246,6 @@ export default function App() {
                     {...commonCardProps}
                   />
                 ))}
-                <div className="projects-grid" style={{ marginTop: groups.length ? 12 : 0 }}>
-                  <AddProjectForm companies={companies} onAdd={handleProjectAdded} />
-                </div>
 
                 {archivedProjects.length > 0 && (
                   <div className="archived-section">
@@ -263,6 +282,8 @@ export default function App() {
               onCompanyAdded={handleCompanyAdded}
               onCompanyRenamed={handleCompanyRenamed}
               onCompanyDeleted={handleCompanyDeleted}
+              notificationsEnabled={notificationsEnabled}
+              onToggleNotifications={handleToggleNotifications}
             />
           </>
         )}

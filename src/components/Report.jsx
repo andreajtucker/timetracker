@@ -140,7 +140,7 @@ export default function Report({ filterCompany, filterProjectId, period, startDa
         <SortHeader col="project" label="Project" />
         <SortHeader col="date" label="Date Logged" />
         <SortHeader col="time" label="Time Logged" />
-        <SortHeader col="billed" label="Billed Hours" />
+        <SortHeader col="billed" label="Billable Hours" />
         <span />
       </div>
 
@@ -150,7 +150,7 @@ export default function Report({ filterCompany, filterProjectId, period, startDa
             <span className="report-company-name">{group.company_name ?? 'No Company'}</span>
             {group.session && (
               <span className="report-company-billing">
-                {billedHours(group.session.total_session_seconds)} hr{billedHours(group.session.total_session_seconds) !== 1 ? 's' : ''} billed (session)
+                {billedHours(group.session.total_session_seconds)} hr{billedHours(group.session.total_session_seconds) !== 1 ? 's' : ''} billable (session)
               </span>
             )}
           </div>
@@ -202,7 +202,7 @@ export default function Report({ filterCompany, filterProjectId, period, startDa
         <span>Total</span>
         <span />
         <span>{formatDuration(totalLoggedSeconds)}</span>
-        <span>{totalBilledHrs} hr{totalBilledHrs !== 1 ? 's' : ''} billed</span>
+        <span>{totalBilledHrs} hr{totalBilledHrs !== 1 ? 's' : ''} billable</span>
         <span />
       </div>
     </div>

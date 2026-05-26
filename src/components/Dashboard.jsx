@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { formatDuration, billedHours } from '../utils/time';
 
-export default function Dashboard({ filterCompany, filterProjectId }) {
+export default function Dashboard({ filterCompany, filterProjectId, period, startDate, endDate }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!period) return;
+    if (period === 'custom' && (!startDate || !endDate)) return;
     async function load() {
       setLoading(true);
       setError(null);
@@ -14,6 +16,11 @@ export default function Dashboard({ filterCompany, filterProjectId }) {
         const params = new URLSearchParams();
         if (filterCompany) params.set('company', filterCompany);
         if (filterProjectId) params.set('project_id', filterProjectId);
+        if (period) params.set('period', period);
+        if (period === 'custom') {
+          params.set('start_date', startDate);
+          params.set('end_date', endDate);
+        }
         const res = await fetch(`/api/reports/summary?${params}`);
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Failed to load summary');
@@ -25,7 +32,7 @@ export default function Dashboard({ filterCompany, filterProjectId }) {
       }
     }
     load();
-  }, [filterCompany, filterProjectId]);
+  }, [filterCompany, filterProjectId, period, startDate, endDate]);
 
   if (loading) return <div className="loading">Loading dashboard…</div>;
   if (error) return <div className="report-table"><div className="report-empty">Error: {error}</div></div>;
@@ -38,7 +45,7 @@ export default function Dashboard({ filterCompany, filterProjectId }) {
     <div className="dashboard">
       <div className="dashboard-stats">
         <div className="stat-card">
-          <div className="stat-label">Total Hours Billed</div>
+          <div className="stat-label">Total Hours Billable</div>
           <div className="stat-value">{totalBilled} hr{totalBilled !== 1 ? 's' : ''}</div>
           <div className="stat-sub">{formatDuration(total_seconds)} logged</div>
         </div>
@@ -69,7 +76,7 @@ export default function Dashboard({ filterCompany, filterProjectId }) {
                     </span>
                     <span className="company-row-time">
                       {formatDuration(row.total_seconds)}
-                      <span className="company-row-billed">{billed} hr{billed !== 1 ? 's' : ''} billed</span>
+                      <span className="company-row-billed">{billed} hr{billed !== 1 ? 's' : ''} billable</span>
                     </span>
                   </div>
                   <div className="company-bar-track">

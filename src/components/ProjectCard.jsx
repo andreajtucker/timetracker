@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatElapsed, billedHours, formatDuration, formatDateTime } from '../utils/time';
+import { formatElapsed, formatDuration, formatDateTime } from '../utils/time';
 
 const WARN_SECONDS = 55 * 60;
 
-export default function ProjectCard({ project, activeEntry, lastEntry, companies = [], onStart, onStop, onDelete, onArchive, onEdit, onAddDescription }) {
+export default function ProjectCard({ project, activeEntry, lastEntry, companies = [], notificationsEnabled, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription }) {
   const [elapsed, setElapsed] = useState(0);
   const warnedRef = useRef(false);
   const [description, setDescription] = useState('');
@@ -46,7 +46,7 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
   }, [isRunning, activeEntry?.start_time]);
 
   function triggerWarning(name) {
-    if ('Notification' in window && Notification.permission === 'granted') {
+    if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
       new Notification(`Still working on "${name}"?`, {
         body: 'You have been working for 55 minutes. Click stop when done.',
         icon: '/favicon.svg',
@@ -70,8 +70,6 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
   function handleEditKeyDown(e) {
     if (e.key === 'Escape') setIsEditing(false);
   }
-
-  const billed = billedHours(elapsed);
 
   return (
     <div className={`project-card${isRunning ? ' running' : ''}`}>
@@ -129,11 +127,6 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
           <div className={`timer-elapsed${isRunning ? ' running' : ''}`}>
             {formatElapsed(isRunning ? elapsed : 0)}
           </div>
-          {isRunning && (
-            <div className="timer-billed">
-              <span>{billed}</span> hr{billed !== 1 ? 's' : ''} billed
-            </div>
-          )}
         </div>
         <button
           className={`timer-btn ${isRunning ? 'stop' : 'start'}`}

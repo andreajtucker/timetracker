@@ -105,7 +105,13 @@ export default function ReportsPage() {
         )}
       </div>
 
-      <Dashboard filterCompany={filterCompany} filterProjectId={filterProjectId} />
+      <Dashboard
+        filterCompany={filterCompany}
+        filterProjectId={filterProjectId}
+        period={period}
+        startDate={committedStart}
+        endDate={committedEnd}
+      />
       <div className="reports-divider" />
       <Report
         filterCompany={filterCompany}

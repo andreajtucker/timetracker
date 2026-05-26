@@ -40,6 +40,8 @@ router.get('/summary', async (req, res) => {
   try {
     const company = req.query.company || null;
     const projectId = req.query.project_id ? parseInt(req.query.project_id) : null;
+    const { period, start_date, end_date } = req.query;
+    const { start, end } = getDateRange(period, start_date, end_date);
 
     const [totalResult, byCompanyResult] = await Promise.all([
       pool.query(`
@@ -49,9 +51,10 @@ router.get('/summary', async (req, res) => {
         FROM time_entries te
         JOIN projects p ON p.id = te.project_id
         WHERE te.end_time IS NOT NULL
+          AND te.start_time >= $3 AND te.start_time <= $4
           AND ($1::text IS NULL OR p.company_id = (SELECT id FROM companies WHERE name = $1))
           AND ($2::int IS NULL OR te.project_id = $2)
-      `, [company, projectId]),
+      `, [company, projectId, start, end]),
       pool.query(`
         SELECT
           c.name AS company,
@@ -61,11 +64,12 @@ router.get('/summary', async (req, res) => {
         JOIN projects p ON p.id = te.project_id
         LEFT JOIN companies c ON c.id = p.company_id
         WHERE te.end_time IS NOT NULL
+          AND te.start_time >= $3 AND te.start_time <= $4
           AND ($1::text IS NULL OR c.name = $1)
           AND ($2::int IS NULL OR te.project_id = $2)
         GROUP BY c.name
         ORDER BY total_seconds DESC
-      `, [company, projectId]),
+      `, [company, projectId, start, end]),
     ]);
 
     res.json({

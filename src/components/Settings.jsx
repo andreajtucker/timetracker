@@ -47,9 +47,21 @@ function CompanyRow({ company, onRename, onDelete }) {
   );
 }
 
-export default function Settings({ companies, onCompanyAdded, onCompanyRenamed, onCompanyDeleted }) {
+export default function Settings({ companies, onCompanyAdded, onCompanyRenamed, onCompanyDeleted, notificationsEnabled, onToggleNotifications }) {
   const [newName, setNewName] = useState('');
   const [addError, setAddError] = useState('');
+
+  const notifSupported = 'Notification' in window;
+  const notifPermission = notifSupported ? Notification.permission : 'unsupported';
+
+  async function handleNotifToggle() {
+    if (!notificationsEnabled && notifPermission === 'default') {
+      const result = await Notification.requestPermission();
+      if (result === 'granted') onToggleNotifications(true);
+    } else {
+      onToggleNotifications(!notificationsEnabled);
+    }
+  }
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -118,6 +130,29 @@ export default function Settings({ companies, onCompanyAdded, onCompanyRenamed, 
           <button type="submit" className="add-project-submit">Add Company</button>
         </form>
         {addError && <span className="error-msg" style={{ marginTop: 8, display: 'block' }}>{addError}</span>}
+      </div>
+
+      <div className="settings-section" style={{ marginTop: 24 }}>
+        <h3 className="settings-section-title">Notifications</h3>
+        <p className="settings-section-desc">Send a browser notification when a timer has been running for 55 minutes.</p>
+        <div className="settings-notif-row">
+          <div>
+            <div className="settings-notif-label">55-minute timer reminders</div>
+            {!notifSupported && (
+              <div className="settings-notif-status">Not supported in this browser.</div>
+            )}
+            {notifSupported && notifPermission === 'denied' && (
+              <div className="settings-notif-status warn">Blocked by your browser — allow notifications for this site in browser settings to enable.</div>
+            )}
+          </div>
+          <button
+            className={`settings-toggle${notificationsEnabled && notifPermission === 'granted' ? ' on' : ''}`}
+            onClick={handleNotifToggle}
+            disabled={!notifSupported || notifPermission === 'denied'}
+          >
+            <span className="settings-toggle-knob" />
+          </button>
+        </div>
       </div>
     </div>
   );
