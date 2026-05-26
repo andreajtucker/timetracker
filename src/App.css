@@ -657,13 +657,19 @@
 
 .report-entry-timestamps {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 2px;
   color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
-.report-entry-arrow {
-  color: var(--border);
+.report-entry-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-right: 5px;
 }
 
 .report-entry-duration {

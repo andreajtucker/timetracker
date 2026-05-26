@@ -38,7 +38,7 @@ export default function Dashboard({ filterCompanies = [], filterProjectId, perio
   if (error) return <div className="report-table"><div className="report-empty">Error: {error}</div></div>;
 
   const { total_seconds, project_count, by_company } = summary;
-  const totalBilled = billedHours(total_seconds);
+  const totalBilled = by_company.reduce((sum, row) => sum + billedHours(row.total_seconds), 0);
   const companyCount = by_company.filter(c => c.company).length;
 
   return (

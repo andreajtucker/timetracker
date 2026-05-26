@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatDuration, formatDateTime, billedHours } from '../utils/time';
+import { formatDuration, formatTime, billedHours } from '../utils/time';
 
 function getDateRange(entries) {
   if (!entries.length) return '—';
@@ -184,9 +184,8 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
                   {project.entries.map(entry => (
                     <div key={entry.id} className="report-entry-row">
                       <div className="report-entry-timestamps">
-                        <span>{formatDateTime(entry.start_time)}</span>
-                        <span className="report-entry-arrow">→</span>
-                        <span>{formatDateTime(entry.end_time)}</span>
+                        <div><span className="report-entry-label">Start</span>{formatTime(entry.start_time)}</div>
+                        <div><span className="report-entry-label">End</span>{formatTime(entry.end_time)}</div>
                       </div>
                       <span className="report-entry-duration">{formatDuration(entry.duration_seconds)}</span>
                       {entry.description
