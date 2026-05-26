@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './App.css';
 import CompanyGroup from './components/CompanyGroup';
 import ArchivedCard from './components/ArchivedCard';
@@ -7,12 +7,64 @@ import DescriptionModal from './components/DescriptionModal';
 import ReportsPage from './components/ReportsPage';
 import Settings from './components/Settings';
 
+function CompanyMultiSelect({ companies, selected, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open]);
+
+  const label = selected.length === 0
+    ? 'All Companies'
+    : selected.length === 1
+    ? selected[0]
+    : `${selected.length} companies`;
+
+  function toggle(name) {
+    onChange(selected.includes(name)
+      ? selected.filter(n => n !== name)
+      : [...selected, name]
+    );
+  }
+
+  return (
+    <div className="multiselect" ref={ref}>
+      <button className="multiselect-btn" onClick={() => setOpen(o => !o)}>
+        <span>{label}</span>
+        <span className="multiselect-arrow">▾</span>
+      </button>
+      {open && (
+        <div className="multiselect-dropdown">
+          {selected.length > 0 && (
+            <button className="multiselect-clear" onClick={() => onChange([])}>Clear selection</button>
+          )}
+          {companies.map(c => (
+            <label key={c.id} className="multiselect-option">
+              <input
+                type="checkbox"
+                checked={selected.includes(c.name)}
+                onChange={() => toggle(c.name)}
+              />
+              {c.name}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = useState('tracker');
   const [projects, setProjects] = useState([]);
   const [archivedProjects, setArchivedProjects] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
-  const [trackerCompany, setTrackerCompany] = useState('');
+  const [trackerCompanies, setTrackerCompanies] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [activeEntries, setActiveEntries] = useState({});
   const [lastEntries, setLastEntries] = useState({});
@@ -185,8 +237,8 @@ export default function App() {
     return a.company.name.localeCompare(b.company.name);
   });
 
-  const filteredGroups = trackerCompany
-    ? groups.filter(g => g.company?.name === trackerCompany)
+  const filteredGroups = trackerCompanies.length > 0
+    ? groups.filter(g => g.company && trackerCompanies.includes(g.company.name))
     : groups;
 
   const commonCardProps = {
@@ -221,14 +273,11 @@ export default function App() {
             <div className="tracker-header">
               <h2>Projects</h2>
               {companies.length > 0 && (
-                <select
-                  className="filter-select"
-                  value={trackerCompany}
-                  onChange={e => setTrackerCompany(e.target.value)}
-                >
-                  <option value="">All Companies</option>
-                  {companies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                </select>
+                <CompanyMultiSelect
+                  companies={companies}
+                  selected={trackerCompanies}
+                  onChange={setTrackerCompanies}
+                />
               )}
             </div>
             {loading ? (
