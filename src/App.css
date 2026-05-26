@@ -235,20 +235,6 @@
 }
 .timer-btn.stop:hover { background: var(--red-dark); transform: scale(1.05); }
 
-.warning-banner {
-  background: var(--amber-light);
-  border: 1px solid var(--amber);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.85rem;
-  color: #92400e;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.warning-banner .warn-icon { font-size: 1rem; }
-
 .session-desc-input {
   width: 100%;
   border: 1px solid var(--border);
@@ -302,7 +288,7 @@
 
 .session-desc-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   margin-top: 4px;
 }
@@ -310,12 +296,12 @@
 .edit-desc-btn {
   background: none;
   border: none;
-  padding: 0 2px;
-  font-size: 0.75rem;
+  padding: 2px;
   color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
-  line-height: 1.4;
+  display: flex;
+  align-items: center;
 }
 .edit-desc-btn:hover { color: var(--primary); }
 
@@ -503,6 +489,15 @@
   gap: 10px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+
+.filter-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  align-self: center;
+  flex-shrink: 0;
+  margin: 0 4px;
 }
 
 .filter-select {
@@ -832,4 +827,140 @@
   background: var(--primary);
   border-radius: 3px;
   transition: width 0.4s ease;
+}
+
+/* ── Tracker: Company Groups ── */
+.company-group {
+  margin-bottom: 32px;
+}
+
+.company-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.company-group-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.company-billing-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.07);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+/* ── Settings Page ── */
+.settings-page {
+  max-width: 600px;
+}
+
+.settings-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.settings-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.settings-section-desc {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.settings-company-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.settings-empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 8px 0;
+}
+
+.settings-company-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  gap: 8px;
+}
+
+.settings-company-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.settings-company-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-company-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.settings-add-form {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Report: Company Groups ── */
+.report-company-group + .report-company-group {
+  border-top: 2px solid var(--border);
+}
+
+.report-company-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  background: #f8f9fb;
+  border-bottom: 1px solid var(--border);
+}
+
+.report-company-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.report-company-billing {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
 }

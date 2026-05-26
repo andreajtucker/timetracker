@@ -5,16 +5,13 @@ const router = express.Router();
 
 router.get('/active', async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM time_entries WHERE end_time IS NULL'
-    );
+    const result = await pool.query('SELECT * FROM time_entries WHERE end_time IS NULL');
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Last completed entry per project (all projects)
 router.get('/last', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -33,18 +30,40 @@ router.get('/last', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { project_id } = req.body;
+
     const existing = await pool.query(
-      'SELECT * FROM time_entries WHERE project_id = $1 AND end_time IS NULL',
+      'SELECT id FROM time_entries WHERE project_id = $1 AND end_time IS NULL',
       [project_id]
     );
     if (existing.rows.length > 0) {
       return res.status(400).json({ error: 'Timer already running for this project' });
     }
+
     const result = await pool.query(
       'INSERT INTO time_entries (project_id, start_time) VALUES ($1, NOW()) RETURNING *',
       [project_id]
     );
-    res.json(result.rows[0]);
+    const entry = result.rows[0];
+
+    // Open a company session if this is the first active project for the company
+    const proj = await pool.query('SELECT company_id FROM projects WHERE id = $1', [project_id]);
+    const company_id = proj.rows[0]?.company_id;
+    if (company_id) {
+      const otherActive = await pool.query(`
+        SELECT te.id FROM time_entries te
+        JOIN projects p ON p.id = te.project_id
+        WHERE p.company_id = $1 AND te.end_time IS NULL AND te.id != $2
+      `, [company_id, entry.id]);
+
+      if (otherActive.rows.length === 0) {
+        await pool.query(
+          'INSERT INTO company_sessions (company_id, start_time) VALUES ($1, NOW())',
+          [company_id]
+        );
+      }
+    }
+
+    res.json(entry);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -57,8 +76,28 @@ router.put('/:id/stop', async (req, res) => {
        RETURNING *, EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds`,
       [req.params.id]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Entry not found' });
-    res.json(result.rows[0]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Entry not found' });
+    const entry = result.rows[0];
+
+    // Close the company session if no other projects for this company are still active
+    const proj = await pool.query('SELECT company_id FROM projects WHERE id = $1', [entry.project_id]);
+    const company_id = proj.rows[0]?.company_id;
+    if (company_id) {
+      const stillActive = await pool.query(`
+        SELECT te.id FROM time_entries te
+        JOIN projects p ON p.id = te.project_id
+        WHERE p.company_id = $1 AND te.end_time IS NULL
+      `, [company_id]);
+
+      if (stillActive.rows.length === 0) {
+        await pool.query(
+          'UPDATE company_sessions SET end_time = NOW() WHERE company_id = $1 AND end_time IS NULL',
+          [company_id]
+        );
+      }
+    }
+
+    res.json(entry);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -71,7 +110,7 @@ router.put('/:id/description', async (req, res) => {
       'UPDATE time_entries SET description = $1 WHERE id = $2 RETURNING *',
       [description, req.params.id]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Entry not found' });
+    if (!result.rows.length) return res.status(404).json({ error: 'Entry not found' });
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 export default function AddProjectForm({ companies, onAdd }) {
   const [name, setName] = useState('');
-  const [company, setCompany] = useState('');
+  const [companyId, setCompanyId] = useState('');
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(false);
 
@@ -16,13 +16,13 @@ export default function AddProjectForm({ companies, onAdd }) {
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmed, company: company.trim() || undefined }),
+        body: JSON.stringify({ name: trimmed, company_id: companyId ? parseInt(companyId) : null }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || `Server error ${res.status}`); return; }
       onAdd(data);
       setName('');
-      setCompany('');
+      setCompanyId('');
       setExpanded(false);
     } catch (err) {
       setError('Cannot reach server — is it running? (' + err.message + ')');
@@ -33,7 +33,7 @@ export default function AddProjectForm({ companies, onAdd }) {
     setExpanded(false);
     setError('');
     setName('');
-    setCompany('');
+    setCompanyId('');
   }
 
   return (
@@ -55,22 +55,17 @@ export default function AddProjectForm({ companies, onAdd }) {
               maxLength={100}
             />
             <button type="submit" className="add-project-submit">Add</button>
-            <button type="button" className="btn-secondary" style={{ borderRadius: 8, padding: '10px 14px' }}
-              onClick={handleCancel}>✕</button>
+            <button type="button" className="btn-secondary" style={{ borderRadius: 8, padding: '10px 14px' }} onClick={handleCancel}>✕</button>
           </div>
-          <input
+          <select
             className="add-project-input"
-            placeholder="Company (optional)"
-            value={company}
-            onChange={e => setCompany(e.target.value)}
-            list="company-suggestions"
-            maxLength={100}
-          />
-          {companies.length > 0 && (
-            <datalist id="company-suggestions">
-              {companies.map(c => <option key={c} value={c} />)}
-            </datalist>
-          )}
+            value={companyId}
+            onChange={e => setCompanyId(e.target.value)}
+            style={{ fontSize: '0.95rem' }}
+          >
+            <option value="">No company</option>
+            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
           {error && <span className="error-msg">{error}</span>}
         </form>
       )}

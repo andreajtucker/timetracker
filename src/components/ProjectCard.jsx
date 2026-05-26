@@ -3,14 +3,14 @@ import { formatElapsed, billedHours, formatDuration, formatDateTime } from '../u
 
 const WARN_SECONDS = 55 * 60;
 
-export default function ProjectCard({ project, activeEntry, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription }) {
+export default function ProjectCard({ project, activeEntry, lastEntry, companies = [], onStart, onStop, onDelete, onArchive, onEdit, onAddDescription }) {
   const [elapsed, setElapsed] = useState(0);
   const warnedRef = useRef(false);
   const [description, setDescription] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editCompany, setEditCompany] = useState('');
+  const [editCompanyId, setEditCompanyId] = useState('');
   const menuRef = useRef(null);
   const intervalRef = useRef(null);
 
@@ -18,9 +18,7 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
     }
     if (menuOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -58,24 +56,22 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
 
   function startEditing() {
     setEditName(project.name);
-    setEditCompany(project.company || '');
+    setEditCompanyId(project.company_id ? String(project.company_id) : '');
     setIsEditing(true);
     setMenuOpen(false);
   }
 
   async function handleSaveEdit() {
     if (!editName.trim()) return;
-    await onEdit(project.id, editName.trim(), editCompany.trim() || null);
+    await onEdit(project.id, editName.trim(), editCompanyId ? parseInt(editCompanyId) : null);
     setIsEditing(false);
   }
 
   function handleEditKeyDown(e) {
-    if (e.key === 'Enter') handleSaveEdit();
     if (e.key === 'Escape') setIsEditing(false);
   }
 
   const billed = billedHours(elapsed);
-  const lastEntry = project.lastEntry;
 
   return (
     <div className={`project-card${isRunning ? ' running' : ''}`}>
@@ -90,26 +86,24 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
             autoFocus
             maxLength={100}
           />
-          <input
+          <select
             className="add-project-input"
-            value={editCompany}
-            onChange={e => setEditCompany(e.target.value)}
-            onKeyDown={handleEditKeyDown}
-            placeholder="Company (optional)"
-            maxLength={100}
-          />
+            value={editCompanyId}
+            onChange={e => setEditCompanyId(e.target.value)}
+            style={{ fontSize: '0.95rem' }}
+          >
+            <option value="">No company</option>
+            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
           <div className="card-edit-actions">
-            <button className="btn-secondary" style={{ borderRadius: 8, padding: '8px 14px', fontSize: '0.875rem' }}
-              onClick={() => setIsEditing(false)}>Cancel</button>
-            <button className="btn-primary" style={{ borderRadius: 8, padding: '8px 14px', fontSize: '0.875rem' }}
-              onClick={handleSaveEdit}>Save</button>
+            <button className="btn-secondary" style={{ borderRadius: 8, padding: '8px 14px', fontSize: '0.875rem' }} onClick={() => setIsEditing(false)}>Cancel</button>
+            <button className="btn-primary" style={{ borderRadius: 8, padding: '8px 14px', fontSize: '0.875rem' }} onClick={handleSaveEdit}>Save</button>
           </div>
         </div>
       ) : (
         <div className="card-header">
           <div className="card-title">
             <span className="project-name" title={project.name}>{project.name}</span>
-            {project.company && <span className="project-company">{project.company}</span>}
           </div>
           <div className="card-menu" ref={menuRef}>
             <button className="menu-btn" onClick={() => setMenuOpen(o => !o)} title="More options">⋯</button>
@@ -121,13 +115,9 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
                   onClick={() => { onArchive(project.id); setMenuOpen(false); }}
                   disabled={isRunning}
                   title={isRunning ? 'Stop the timer before archiving' : undefined}
-                >
-                  Archive
-                </button>
+                >Archive</button>
                 <div className="menu-divider" />
-                <button className="menu-item menu-item-danger" onClick={() => { onDelete(project.id); setMenuOpen(false); }}>
-                  Delete
-                </button>
+                <button className="menu-item menu-item-danger" onClick={() => { onDelete(project.id); setMenuOpen(false); }}>Delete</button>
               </div>
             )}
           </div>
@@ -135,13 +125,6 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
       )}
 
       <div className="timer-section">
-        {isRunning && elapsed >= WARN_SECONDS && (
-          <div className="warning-banner">
-            <span className="warn-icon">⚠️</span>
-            <span>55+ minutes logged — are you still working?</span>
-          </div>
-        )}
-
         <div className="timer-display">
           <div className={`timer-elapsed${isRunning ? ' running' : ''}`}>
             {formatElapsed(isRunning ? elapsed : 0)}
@@ -152,7 +135,6 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
             </div>
           )}
         </div>
-
         <button
           className={`timer-btn ${isRunning ? 'stop' : 'start'}`}
           onClick={isRunning ? () => onStop(project.id, activeEntry.id, description) : () => onStart(project.id)}
@@ -182,7 +164,11 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
             {lastEntry.description ? (
               <div className="session-desc-row">
                 <span className="session-desc" title={lastEntry.description}>{lastEntry.description}</span>
-                <button className="edit-desc-btn" onClick={() => onAddDescription(lastEntry, project.name)} title="Edit description">✏</button>
+                <button className="edit-desc-btn" onClick={() => onAddDescription(lastEntry, project.name)} title="Edit description">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                  </svg>
+                </button>
               </div>
             ) : (
               <button className="add-desc-btn" onClick={() => onAddDescription(lastEntry, project.name)}>

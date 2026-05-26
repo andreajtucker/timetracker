@@ -30,25 +30,26 @@ export default function Dashboard({ filterCompany, filterProjectId }) {
   if (loading) return <div className="loading">Loading dashboard…</div>;
   if (error) return <div className="report-table"><div className="report-empty">Error: {error}</div></div>;
 
-  const { total_seconds, by_company } = summary;
+  const { total_seconds, project_count, by_company } = summary;
   const totalBilled = billedHours(total_seconds);
+  const companyCount = by_company.filter(c => c.company).length;
 
   return (
     <div className="dashboard">
       <div className="dashboard-stats">
         <div className="stat-card">
-          <div className="stat-label">Total Hours Logged</div>
-          <div className="stat-value">{formatDuration(total_seconds)}</div>
-          <div className="stat-sub">{totalBilled} hr{totalBilled !== 1 ? 's' : ''} billed</div>
+          <div className="stat-label">Total Hours Billed</div>
+          <div className="stat-value">{totalBilled} hr{totalBilled !== 1 ? 's' : ''}</div>
+          <div className="stat-sub">{formatDuration(total_seconds)} logged</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Companies</div>
-          <div className="stat-value">{by_company.filter(c => c.company).length}</div>
+          <div className="stat-value">{companyCount}</div>
           <div className="stat-sub">with logged time</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Projects</div>
-          <div className="stat-value">{by_company.length}</div>
+          <div className="stat-value">{project_count}</div>
           <div className="stat-sub">tracked</div>
         </div>
       </div>

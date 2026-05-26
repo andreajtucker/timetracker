@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import projectRoutes from './routes/projects.js';
 import timeEntryRoutes from './routes/timeEntries.js';
 import reportRoutes from './routes/reports.js';
+import companyRoutes from './routes/companies.js';
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use('/api/companies', companyRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/time-entries', timeEntryRoutes);
 app.use('/api/reports', reportRoutes);

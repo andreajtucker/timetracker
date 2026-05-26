@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import './App.css';
-import ProjectCard from './components/ProjectCard';
+import CompanyGroup from './components/CompanyGroup';
 import ArchivedCard from './components/ArchivedCard';
 import AddProjectForm from './components/AddProjectForm';
 import DescriptionModal from './components/DescriptionModal';
 import ReportsPage from './components/ReportsPage';
+import Settings from './components/Settings';
 
 export default function App() {
   const [tab, setTab] = useState('tracker');
   const [projects, setProjects] = useState([]);
   const [archivedProjects, setArchivedProjects] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [companies, setCompanies] = useState([]);
   const [activeEntries, setActiveEntries] = useState({});
   const [lastEntries, setLastEntries] = useState({});
   const [descModal, setDescModal] = useState(null);
@@ -30,33 +32,30 @@ export default function App() {
   async function loadData() {
     setLoading(true);
     try {
-      const [projRes, archivedRes, activeRes, lastRes] = await Promise.all([
+      const [projRes, archivedRes, activeRes, lastRes, companiesRes] = await Promise.all([
         fetch('/api/projects'),
         fetch('/api/projects/archived'),
         fetch('/api/time-entries/active'),
         fetch('/api/time-entries/last'),
+        fetch('/api/companies'),
       ]);
-      const projs = await projRes.json();
-      const archived = await archivedRes.json();
-      const active = await activeRes.json();
-      const lastAll = await lastRes.json();
+      const [projs, archived, active, lastAll, companiesList] = await Promise.all([
+        projRes.json(), archivedRes.json(), activeRes.json(), lastRes.json(), companiesRes.json(),
+      ]);
 
       const activeMap = {};
-      for (const entry of active) {
-        activeMap[entry.project_id] = entry;
-      }
+      for (const entry of active) activeMap[entry.project_id] = entry;
 
       const lastMap = {};
       for (const entry of lastAll) {
-        if (!activeMap[entry.project_id]) {
-          lastMap[entry.project_id] = entry;
-        }
+        if (!activeMap[entry.project_id]) lastMap[entry.project_id] = entry;
       }
 
       setProjects(projs);
       setArchivedProjects(archived);
       setActiveEntries(activeMap);
       setLastEntries(lastMap);
+      setCompanies(Array.isArray(companiesList) ? companiesList : []);
     } finally {
       setLoading(false);
     }
@@ -77,11 +76,7 @@ export default function App() {
     const res = await fetch(`/api/time-entries/${entryId}/stop`, { method: 'PUT' });
     if (!res.ok) return;
     const entry = await res.json();
-    setActiveEntries(prev => {
-      const next = { ...prev };
-      delete next[projectId];
-      return next;
-    });
+    setActiveEntries(prev => { const n = { ...prev }; delete n[projectId]; return n; });
     if (description?.trim()) {
       await fetch(`/api/time-entries/${entryId}/description`, {
         method: 'PUT',
@@ -118,16 +113,20 @@ export default function App() {
   async function handleUnarchive(projectId) {
     const res = await fetch(`/api/projects/${projectId}/unarchive`, { method: 'PATCH' });
     if (!res.ok) return;
-    const project = archivedProjects.find(p => p.id === projectId);
+    const updated = await res.json();
     setArchivedProjects(prev => prev.filter(p => p.id !== projectId));
-    setProjects(prev => [...prev, project]);
+    setProjects(prev => [...prev, updated].sort((a, b) => {
+      if (!a.company && b.company) return 1;
+      if (a.company && !b.company) return -1;
+      return (a.company || '').localeCompare(b.company || '') || new Date(a.created_at) - new Date(b.created_at);
+    }));
   }
 
-  async function handleEdit(projectId, name, company) {
+  async function handleEdit(projectId, name, companyId) {
     const res = await fetch(`/api/projects/${projectId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, company }),
+      body: JSON.stringify({ name, company_id: companyId }),
     });
     if (!res.ok) return;
     const updated = await res.json();
@@ -139,77 +138,94 @@ export default function App() {
   }
 
   function handleDescSave(entryId, description) {
-    const modal = descModal;
     setDescModal(null);
-    if (modal) {
-      setLastEntries(prev => {
-        const updated = { ...prev };
-        for (const [pid, entry] of Object.entries(updated)) {
-          if (entry.id === entryId) {
-            updated[pid] = { ...entry, description };
-          }
-        }
-        return updated;
-      });
-    }
+    setLastEntries(prev => {
+      const updated = { ...prev };
+      for (const [pid, entry] of Object.entries(updated)) {
+        if (entry.id === entryId) updated[pid] = { ...entry, description };
+      }
+      return updated;
+    });
   }
 
   function handleAddDescription(entry, projectName) {
     setDescModal({ entry, projectName });
   }
 
-  const allCompanies = [...new Set(
-    [...projects, ...archivedProjects].map(p => p.company).filter(Boolean)
-  )];
+  // Company handlers for Settings
+  function handleCompanyAdded(company) {
+    setCompanies(prev => [...prev, company].sort((a, b) => a.name.localeCompare(b.name)));
+  }
+  function handleCompanyRenamed(updated) {
+    setCompanies(prev => prev.map(c => c.id === updated.id ? updated : c).sort((a, b) => a.name.localeCompare(b.name)));
+    setProjects(prev => prev.map(p => p.company_id === updated.id ? { ...p, company: updated.name } : p));
+  }
+  function handleCompanyDeleted(id) {
+    setCompanies(prev => prev.filter(c => c.id !== id));
+    setProjects(prev => prev.map(p => p.company_id === id ? { ...p, company_id: null, company: null } : p));
+  }
 
-  const projectsWithLastEntry = projects.map(p => ({
-    ...p,
-    lastEntry: lastEntries[p.id] || null,
-  }));
+  // Group active projects by company
+  const groupMap = {};
+  for (const project of projects) {
+    const key = project.company_id ?? '__none__';
+    if (!groupMap[key]) {
+      groupMap[key] = {
+        company: project.company_id ? { id: project.company_id, name: project.company } : null,
+        projects: [],
+      };
+    }
+    groupMap[key].projects.push(project);
+  }
+  const groups = Object.values(groupMap).sort((a, b) => {
+    if (!a.company) return 1;
+    if (!b.company) return -1;
+    return a.company.name.localeCompare(b.company.name);
+  });
+
+  const commonCardProps = {
+    companies,
+    activeEntries,
+    lastEntries,
+    onStart: handleStart,
+    onStop: handleStop,
+    onDelete: handleDelete,
+    onArchive: handleArchive,
+    onEdit: handleEdit,
+    onAddDescription: handleAddDescription,
+  };
 
   return (
     <>
       <header className="app-header">
         <h1>⏱ TimeTracker</h1>
         <nav className="app-nav">
-          <button className={`nav-btn${tab === 'tracker' ? ' active' : ''}`} onClick={() => setTab('tracker')}>
-            Tracker
-          </button>
-          <button className={`nav-btn${tab === 'reports' ? ' active' : ''}`} onClick={() => setTab('reports')}>
-            Reports
-          </button>
+          {['tracker', 'reports', 'settings'].map(t => (
+            <button key={t} className={`nav-btn${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
         </nav>
       </header>
 
       <main className="app-body">
         {tab === 'tracker' && (
           <>
-            <div className="tracker-header">
-              <h2>Projects</h2>
-            </div>
-
+            <div className="tracker-header"><h2>Projects</h2></div>
             {loading ? (
               <div className="loading">Loading…</div>
             ) : (
               <>
-                <div className="projects-grid">
-                  {projectsWithLastEntry.map(project => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      activeEntry={activeEntries[project.id] || null}
-                      onStart={handleStart}
-                      onStop={handleStop}
-                      onDelete={handleDelete}
-                      onArchive={handleArchive}
-                      onEdit={handleEdit}
-                      onAddDescription={handleAddDescription}
-                    />
-                  ))}
-                  <AddProjectForm
-                    companies={allCompanies}
-                    onAdd={handleProjectAdded}
+                {groups.map(group => (
+                  <CompanyGroup
+                    key={group.company?.id ?? '__none__'}
+                    company={group.company}
+                    projects={group.projects}
+                    {...commonCardProps}
                   />
+                ))}
+                <div className="projects-grid" style={{ marginTop: groups.length ? 12 : 0 }}>
+                  <AddProjectForm companies={companies} onAdd={handleProjectAdded} />
                 </div>
 
                 {archivedProjects.length > 0 && (
@@ -221,12 +237,7 @@ export default function App() {
                     {showArchived && (
                       <div className="projects-grid" style={{ marginTop: 16 }}>
                         {archivedProjects.map(project => (
-                          <ArchivedCard
-                            key={project.id}
-                            project={project}
-                            onUnarchive={handleUnarchive}
-                            onDelete={handleDeleteArchived}
-                          />
+                          <ArchivedCard key={project.id} project={project} onUnarchive={handleUnarchive} onDelete={handleDeleteArchived} />
                         ))}
                       </div>
                     )}
@@ -239,10 +250,20 @@ export default function App() {
 
         {tab === 'reports' && (
           <>
-            <div className="tracker-header">
-              <h2>Reports</h2>
-            </div>
+            <div className="tracker-header"><h2>Reports</h2></div>
             <ReportsPage />
+          </>
+        )}
+
+        {tab === 'settings' && (
+          <>
+            <div className="tracker-header"><h2>Settings</h2></div>
+            <Settings
+              companies={companies}
+              onCompanyAdded={handleCompanyAdded}
+              onCompanyRenamed={handleCompanyRenamed}
+              onCompanyDeleted={handleCompanyDeleted}
+            />
           </>
         )}
       </main>
