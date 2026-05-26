@@ -38,6 +38,38 @@ function getDateRange(period, start_date, end_date) {
   return { start, end };
 }
 
+router.get('/summary', async (req, res) => {
+  try {
+    const [totalResult, byCompanyResult] = await Promise.all([
+      pool.query(`
+        SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (end_time - start_time))), 0) AS total_seconds
+        FROM time_entries
+        WHERE end_time IS NOT NULL
+      `),
+      pool.query(`
+        SELECT
+          p.company,
+          SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))) AS total_seconds
+        FROM time_entries te
+        JOIN projects p ON p.id = te.project_id
+        WHERE te.end_time IS NOT NULL
+        GROUP BY p.company
+        ORDER BY total_seconds DESC
+      `),
+    ]);
+
+    res.json({
+      total_seconds: parseFloat(totalResult.rows[0].total_seconds),
+      by_company: byCompanyResult.rows.map(r => ({
+        company: r.company || null,
+        total_seconds: parseFloat(r.total_seconds),
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const { period, start_date, end_date } = req.query;
@@ -47,6 +79,7 @@ router.get('/', async (req, res) => {
       `SELECT
         p.id AS project_id,
         p.name AS project_name,
+        p.company AS project_company,
         te.id AS entry_id,
         te.start_time,
         te.end_time,
@@ -68,6 +101,7 @@ router.get('/', async (req, res) => {
         projects[row.project_id] = {
           project_id: row.project_id,
           project_name: row.project_name,
+          project_company: row.project_company || null,
           total_seconds: 0,
           entries: [],
         };

@@ -180,7 +180,10 @@ export default function ProjectCard({ project, activeEntry, onStart, onStop, onD
               <span className="session-duration">{formatDuration(lastEntry.duration_seconds)}</span>
             </div>
             {lastEntry.description ? (
-              <div className="session-desc" title={lastEntry.description}>{lastEntry.description}</div>
+              <button className="session-desc add-desc-btn" title="Edit description"
+                onClick={() => onAddDescription(lastEntry, project.name)}>
+                {lastEntry.description}
+              </button>
             ) : (
               <button className="add-desc-btn" onClick={() => onAddDescription(lastEntry, project.name)}>
                 + Add description

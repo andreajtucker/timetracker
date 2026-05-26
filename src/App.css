@@ -472,6 +472,32 @@
 .period-btn:hover { border-color: var(--primary); color: var(--primary); }
 .period-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
+.report-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  min-width: 160px;
+  transition: border-color 0.15s;
+}
+.filter-select:hover, .filter-select:focus { border-color: var(--primary); outline: none; }
+
+.report-project-company {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 .date-range-inputs {
   display: flex;
   gap: 8px;
@@ -636,4 +662,116 @@
   text-align: center;
   padding: 40px;
   color: var(--text-muted);
+}
+
+/* ── Dashboard ── */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.dashboard-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.company-breakdown {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.company-row {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.company-row:last-child { border-bottom: none; }
+
+.company-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.company-row-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.company-row-none {
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.company-row-time {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.company-row-billed {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.company-bar-track {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.company-bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width 0.4s ease;
 }

@@ -16,6 +16,8 @@ export default function Report() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState({});
+  const [filterCompany, setFilterCompany] = useState('');
+  const [filterProject, setFilterProject] = useState('');
 
   useEffect(() => {
     if (period !== 'custom') loadReport();
@@ -35,6 +37,8 @@ export default function Report() {
       if (!res.ok) throw new Error(json.error || 'Failed to load report');
       setData(json);
       setExpanded({});
+      setFilterCompany('');
+      setFilterProject('');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -46,9 +50,20 @@ export default function Report() {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
   }
 
-  const totalSeconds = data.reduce((s, p) => s + p.total_seconds, 0);
-  const totalBilled = data.reduce((s, p) => s + billedHours(p.total_seconds), 0);
-  const hasData = data.some(p => p.entries.length > 0);
+  const companies = [...new Set(data.map(p => p.project_company).filter(Boolean))].sort();
+  const projectsForCompany = filterCompany
+    ? data.filter(p => p.project_company === filterCompany)
+    : data;
+
+  const filteredData = data.filter(p => {
+    if (filterCompany && p.project_company !== filterCompany) return false;
+    if (filterProject && p.project_id !== Number(filterProject)) return false;
+    return true;
+  });
+
+  const totalSeconds = filteredData.reduce((s, p) => s + p.total_seconds, 0);
+  const totalBilled = filteredData.reduce((s, p) => s + billedHours(p.total_seconds), 0);
+  const hasData = filteredData.some(p => p.entries.length > 0);
 
   return (
     <div>
@@ -83,6 +98,31 @@ export default function Report() {
         )}
       </div>
 
+      {data.length > 0 && (
+        <div className="report-filters">
+          {companies.length > 0 && (
+            <select
+              className="filter-select"
+              value={filterCompany}
+              onChange={e => { setFilterCompany(e.target.value); setFilterProject(''); }}
+            >
+              <option value="">All Companies</option>
+              {companies.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+          <select
+            className="filter-select"
+            value={filterProject}
+            onChange={e => setFilterProject(e.target.value)}
+          >
+            <option value="">All Projects</option>
+            {projectsForCompany.map(p => (
+              <option key={p.project_id} value={p.project_id}>{p.project_name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {loading ? (
         <div className="loading">Loading report…</div>
       ) : error ? (
@@ -102,13 +142,18 @@ export default function Report() {
             <span>Details</span>
           </div>
 
-          {data.map(project => (
+          {filteredData.map(project => (
             <div key={project.project_id} className="report-project-row">
               <div
                 className="report-project-summary"
                 onClick={() => project.entries.length && toggleExpand(project.project_id)}
               >
-                <span className="report-project-name">{project.project_name}</span>
+                <div>
+                  <div className="report-project-name">{project.project_name}</div>
+                  {project.project_company && (
+                    <div className="report-project-company">{project.project_company}</div>
+                  )}
+                </div>
                 <span className="report-hours">{formatDuration(project.total_seconds)}</span>
                 <span className="report-billed">
                   {billedHours(project.total_seconds)} hr{billedHours(project.total_seconds) !== 1 ? 's' : ''}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { formatDuration, formatDateTime } from '../utils/time';
 
 export default function DescriptionModal({ entry, projectName, onSave, onSkip }) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState(entry?.description || '');
   const [saving, setSaving] = useState(false);
 
   const seconds = entry
