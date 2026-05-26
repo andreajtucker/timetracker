@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import ProjectCard from './components/ProjectCard';
+import ArchivedCard from './components/ArchivedCard';
 import AddProjectForm from './components/AddProjectForm';
 import DescriptionModal from './components/DescriptionModal';
 import Report from './components/Report';
@@ -8,9 +9,11 @@ import Report from './components/Report';
 export default function App() {
   const [tab, setTab] = useState('tracker');
   const [projects, setProjects] = useState([]);
-  const [activeEntries, setActiveEntries] = useState({});  // projectId → entry
-  const [lastEntries, setLastEntries] = useState({});       // projectId → entry
-  const [descModal, setDescModal] = useState(null);         // { entry, projectName }
+  const [archivedProjects, setArchivedProjects] = useState([]);
+  const [showArchived, setShowArchived] = useState(false);
+  const [activeEntries, setActiveEntries] = useState({});
+  const [lastEntries, setLastEntries] = useState({});
+  const [descModal, setDescModal] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,12 +30,14 @@ export default function App() {
   async function loadData() {
     setLoading(true);
     try {
-      const [projRes, activeRes, lastRes] = await Promise.all([
+      const [projRes, archivedRes, activeRes, lastRes] = await Promise.all([
         fetch('/api/projects'),
+        fetch('/api/projects/archived'),
         fetch('/api/time-entries/active'),
         fetch('/api/time-entries/last'),
       ]);
       const projs = await projRes.json();
+      const archived = await archivedRes.json();
       const active = await activeRes.json();
       const lastAll = await lastRes.json();
 
@@ -49,6 +54,7 @@ export default function App() {
       }
 
       setProjects(projs);
+      setArchivedProjects(archived);
       setActiveEntries(activeMap);
       setLastEntries(lastMap);
     } finally {
@@ -67,7 +73,7 @@ export default function App() {
     setActiveEntries(prev => ({ ...prev, [projectId]: entry }));
   }
 
-  async function handleStop(projectId, entryId) {
+  async function handleStop(projectId, entryId, description) {
     const res = await fetch(`/api/time-entries/${entryId}/stop`, { method: 'PUT' });
     if (!res.ok) return;
     const entry = await res.json();
@@ -76,17 +82,56 @@ export default function App() {
       delete next[projectId];
       return next;
     });
+    if (description?.trim()) {
+      await fetch(`/api/time-entries/${entryId}/description`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: description.trim() }),
+      });
+      entry.description = description.trim();
+    }
     setLastEntries(prev => ({ ...prev, [projectId]: entry }));
-    const project = projects.find(p => p.id === projectId);
-    setDescModal({ entry, projectName: project?.name || '' });
   }
 
   async function handleDelete(projectId) {
-    if (!confirm('Remove this project and all its time entries?')) return;
+    if (!confirm('Delete this project and all its time entries? This cannot be undone.')) return;
     await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
     setProjects(prev => prev.filter(p => p.id !== projectId));
     setActiveEntries(prev => { const n = { ...prev }; delete n[projectId]; return n; });
     setLastEntries(prev => { const n = { ...prev }; delete n[projectId]; return n; });
+  }
+
+  async function handleDeleteArchived(projectId) {
+    if (!confirm('Delete this project and all its time entries? This cannot be undone.')) return;
+    await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+    setArchivedProjects(prev => prev.filter(p => p.id !== projectId));
+  }
+
+  async function handleArchive(projectId) {
+    const res = await fetch(`/api/projects/${projectId}/archive`, { method: 'PATCH' });
+    if (!res.ok) return;
+    const project = projects.find(p => p.id === projectId);
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    setArchivedProjects(prev => [...prev, project]);
+  }
+
+  async function handleUnarchive(projectId) {
+    const res = await fetch(`/api/projects/${projectId}/unarchive`, { method: 'PATCH' });
+    if (!res.ok) return;
+    const project = archivedProjects.find(p => p.id === projectId);
+    setArchivedProjects(prev => prev.filter(p => p.id !== projectId));
+    setProjects(prev => [...prev, project]);
+  }
+
+  async function handleEdit(projectId, name, company) {
+    const res = await fetch(`/api/projects/${projectId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, company }),
+    });
+    if (!res.ok) return;
+    const updated = await res.json();
+    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...updated } : p));
   }
 
   function handleProjectAdded(project) {
@@ -112,6 +157,10 @@ export default function App() {
   function handleAddDescription(entry, projectName) {
     setDescModal({ entry, projectName });
   }
+
+  const allCompanies = [...new Set(
+    [...projects, ...archivedProjects].map(p => p.company).filter(Boolean)
+  )];
 
   const projectsWithLastEntry = projects.map(p => ({
     ...p,
@@ -142,23 +191,48 @@ export default function App() {
             {loading ? (
               <div className="loading">Loading…</div>
             ) : (
-              <div className="projects-grid">
-                {projectsWithLastEntry.map(project => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    activeEntry={activeEntries[project.id] || null}
-                    onStart={handleStart}
-                    onStop={handleStop}
-                    onDelete={handleDelete}
-                    onAddDescription={handleAddDescription}
+              <>
+                <div className="projects-grid">
+                  {projectsWithLastEntry.map(project => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      activeEntry={activeEntries[project.id] || null}
+                      onStart={handleStart}
+                      onStop={handleStop}
+                      onDelete={handleDelete}
+                      onArchive={handleArchive}
+                      onEdit={handleEdit}
+                      onAddDescription={handleAddDescription}
+                    />
+                  ))}
+                  <AddProjectForm
+                    companies={allCompanies}
+                    onAdd={handleProjectAdded}
                   />
-                ))}
-                <AddProjectForm
-                  companies={[...new Set(projects.map(p => p.company).filter(Boolean))]}
-                  onAdd={handleProjectAdded}
-                />
-              </div>
+                </div>
+
+                {archivedProjects.length > 0 && (
+                  <div className="archived-section">
+                    <button className="archived-toggle" onClick={() => setShowArchived(o => !o)}>
+                      <span>Archived Projects ({archivedProjects.length})</span>
+                      <span>{showArchived ? '▲' : '▼'}</span>
+                    </button>
+                    {showArchived && (
+                      <div className="projects-grid" style={{ marginTop: 16 }}>
+                        {archivedProjects.map(project => (
+                          <ArchivedCard
+                            key={project.id}
+                            project={project}
+                            onUnarchive={handleUnarchive}
+                            onDelete={handleDeleteArchived}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
