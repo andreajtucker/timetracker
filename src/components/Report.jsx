@@ -14,6 +14,7 @@ export default function Report() {
   const [endDate, setEndDate] = useState('');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState({});
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export default function Report() {
 
   async function loadReport() {
     setLoading(true);
+    setError(null);
     try {
       let url = `/api/reports?period=${period}`;
       if (period === 'custom') {
@@ -30,8 +32,11 @@ export default function Report() {
       }
       const res = await fetch(url);
       const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to load report');
       setData(json);
       setExpanded({});
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -80,6 +85,10 @@ export default function Report() {
 
       {loading ? (
         <div className="loading">Loading report…</div>
+      ) : error ? (
+        <div className="report-table">
+          <div className="report-empty">Error loading report: {error}</div>
+        </div>
       ) : !hasData ? (
         <div className="report-table">
           <div className="report-empty">No time entries found for this period.</div>
