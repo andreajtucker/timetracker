@@ -38,7 +38,9 @@ export default function Dashboard({ filterCompanies = [], filterProjectId, perio
   if (error) return <div className="report-table"><div className="report-empty">Error: {error}</div></div>;
 
   const { total_seconds, project_count, by_company } = summary;
-  const totalBilled = by_company.reduce((sum, row) => sum + billedHours(row.total_seconds), 0);
+  const totalBilled = by_company
+    .filter(row => row.company !== null)
+    .reduce((sum, row) => sum + billedHours(row.total_seconds), 0);
   const companyCount = by_company.filter(c => c.company).length;
 
   return (
@@ -76,7 +78,9 @@ export default function Dashboard({ filterCompanies = [], filterProjectId, perio
                     </span>
                     <span className="company-row-time">
                       {formatDuration(row.total_seconds)}
-                      <span className="company-row-billed">{billed} hr{billed !== 1 ? 's' : ''} billable</span>
+                      {row.company && (
+                        <span className="company-row-billed">{billed} hr{billed !== 1 ? 's' : ''} billable</span>
+                      )}
                     </span>
                   </div>
                   <div className="company-bar-track">

@@ -9,8 +9,9 @@ export function formatElapsed(seconds) {
 }
 
 export function billedHours(seconds) {
-  if (seconds === 0) return 0;
-  return Math.ceil(seconds / 3600);
+  const s = Math.round(parseFloat(seconds) || 0);
+  if (s <= 0) return 0;
+  return Math.ceil(s / 3600);
 }
 
 export function formatDuration(seconds) {
