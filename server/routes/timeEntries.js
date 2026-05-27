@@ -27,6 +27,21 @@ router.get('/last', async (req, res) => {
   }
 });
 
+router.get('/project/:id', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *,
+        EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds
+      FROM time_entries
+      WHERE project_id = $1 AND end_time IS NOT NULL
+      ORDER BY start_time DESC
+    `, [req.params.id]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/', async (req, res) => {
   try {
     const { project_id } = req.body;

@@ -1119,3 +1119,95 @@
   transform: translateX(20px);
 }
 
+/* ── Sessions Modal ── */
+.sessions-modal {
+  width: 700px;
+  max-width: 95vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sessions-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sessions-modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.modal-session-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.sessions-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.sessions-close-btn:hover { background: var(--bg); color: var(--text); }
+
+.sessions-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sessions-list-header,
+.sessions-list-row,
+.sessions-list-total {
+  display: grid;
+  grid-template-columns: 100px 80px 80px 100px 1fr;
+  gap: 12px;
+  padding: 10px 28px;
+  align-items: center;
+}
+
+.sessions-list-header {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+}
+
+.sessions-list-row {
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.sessions-list-row:last-child { border-bottom: none; }
+.sessions-list-row:hover { background: var(--bg); }
+
+.sessions-list-total {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: #eff6ff;
+  border-top: 2px solid var(--border);
+}
+
+.sessions-date { color: var(--text-muted); }
+.sessions-time { color: var(--text); font-variant-numeric: tabular-nums; }
+.sessions-duration { font-weight: 600; }
+.sessions-desc { color: var(--text-muted); font-size: 0.825rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+

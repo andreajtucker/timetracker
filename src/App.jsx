@@ -4,6 +4,7 @@ import CompanyGroup from './components/CompanyGroup';
 import ArchivedCard from './components/ArchivedCard';
 import AddProjectForm from './components/AddProjectForm';
 import DescriptionModal from './components/DescriptionModal';
+import SessionsModal from './components/SessionsModal';
 import ReportsPage from './components/ReportsPage';
 import Settings from './components/Settings';
 import MultiSelectDropdown from './components/MultiSelectDropdown';
@@ -18,6 +19,7 @@ export default function App() {
   const [activeEntries, setActiveEntries] = useState({});
   const [lastEntries, setLastEntries] = useState({});
   const [descModal, setDescModal] = useState(null);
+  const [sessionsModal, setSessionsModal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     () => localStorage.getItem('notificationsEnabled') !== 'false'
@@ -155,6 +157,10 @@ export default function App() {
     setDescModal({ entry, projectName });
   }
 
+  function handleViewSessions(project) {
+    setSessionsModal(project);
+  }
+
   // Company handlers for Settings
   function handleCompanyAdded(company) {
     setCompanies(prev => [...prev, company].sort((a, b) => a.name.localeCompare(b.name)));
@@ -201,6 +207,7 @@ export default function App() {
     onArchive: handleArchive,
     onEdit: handleEdit,
     onAddDescription: handleAddDescription,
+    onViewSessions: handleViewSessions,
   };
 
   return (
@@ -294,6 +301,13 @@ export default function App() {
           projectName={descModal.projectName}
           onSave={handleDescSave}
           onSkip={() => setDescModal(null)}
+        />
+      )}
+
+      {sessionsModal && (
+        <SessionsModal
+          project={sessionsModal}
+          onClose={() => setSessionsModal(null)}
         />
       )}
     </>

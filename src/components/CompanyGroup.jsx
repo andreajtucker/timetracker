@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { billedHours } from '../utils/time';
 import ProjectCard from './ProjectCard';
 
-export default function CompanyGroup({ company, projects, activeEntries, lastEntries, companies, notificationsEnabled, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription }) {
+export default function CompanyGroup({ company, projects, activeEntries, lastEntries, companies, notificationsEnabled, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription, onViewSessions }) {
   const [billedSecs, setBilledSecs] = useState(0);
 
   // Company session start = earliest active project start for this company
@@ -46,6 +46,7 @@ export default function CompanyGroup({ company, projects, activeEntries, lastEnt
             onArchive={onArchive}
             onEdit={onEdit}
             onAddDescription={onAddDescription}
+            onViewSessions={onViewSessions}
           />
         ))}
       </div>

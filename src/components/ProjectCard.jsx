@@ -3,7 +3,7 @@ import { formatElapsed, formatDuration, formatDateTime } from '../utils/time';
 
 const WARN_SECONDS = 55 * 60;
 
-export default function ProjectCard({ project, activeEntry, lastEntry, companies = [], notificationsEnabled, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription }) {
+export default function ProjectCard({ project, activeEntry, lastEntry, companies = [], notificationsEnabled, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription, onViewSessions }) {
   const [elapsed, setElapsed] = useState(0);
   const warnedRef = useRef(false);
   const [description, setDescription] = useState('');
@@ -108,6 +108,7 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
             {menuOpen && (
               <div className="menu-dropdown">
                 <button className="menu-item" onClick={startEditing}>Edit</button>
+                <button className="menu-item" onClick={() => { onViewSessions(project); setMenuOpen(false); }}>View sessions</button>
                 <button
                   className="menu-item"
                   onClick={() => { onArchive(project.id); setMenuOpen(false); }}

@@ -11,6 +11,7 @@ export default function AddProjectForm({ companies, onAdd }) {
     setError('');
     const trimmed = name.trim();
     if (!trimmed) { setError('Enter a project name.'); return; }
+    if (!companyId) { setError('Select a company.'); return; }
 
     try {
       const res = await fetch('/api/projects', {
@@ -63,7 +64,7 @@ export default function AddProjectForm({ companies, onAdd }) {
             onChange={e => setCompanyId(e.target.value)}
             style={{ fontSize: '0.95rem' }}
           >
-            <option value="">No company</option>
+            <option value="" disabled>Select a company</option>
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           {error && <span className="error-msg">{error}</span>}
