@@ -5,22 +5,36 @@ import ProjectCard from './ProjectCard';
 export default function CompanyGroup({ company, projects, activeEntries, lastEntries, companies, notificationsEnabled, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription, onViewSessions }) {
   const [billedSecs, setBilledSecs] = useState(0);
 
-  // Company session start: begins when the first project in this session starts,
-  // continues until all projects stop. Include stopped projects whose end_time
-  // falls within the current active session (they ran concurrently this session).
-  const activeProjects = projects.filter(p => activeEntries[p.id]);
-  const earliestActiveStart = activeProjects.length > 0
-    ? Math.min(...activeProjects.map(p => new Date(activeEntries[p.id].start_time).getTime()))
-    : null;
-  const sessionStart = earliestActiveStart !== null
-    ? Math.min(
-        earliestActiveStart,
-        ...projects
-          .filter(p => !activeEntries[p.id] && lastEntries[p.id] &&
-                       new Date(lastEntries[p.id].end_time).getTime() >= earliestActiveStart)
-          .map(p => new Date(lastEntries[p.id].start_time).getTime())
-      )
-    : null;
+  // Merge all entry intervals (active = [start, ∞], last = [start, end]) to find
+  // the single continuous session containing now. This correctly handles chains
+  // like: A(11:03–12:03) + B(11:36–2:14) + C(12:19–now) → session from 11:03.
+  const hasActive = projects.some(p => activeEntries[p.id]);
+  let sessionStart = null;
+  if (hasActive) {
+    const now = Date.now();
+    const intervals = [];
+    for (const p of projects) {
+      if (activeEntries[p.id]) {
+        intervals.push([new Date(activeEntries[p.id].start_time).getTime(), Infinity]);
+      } else if (lastEntries[p.id]) {
+        intervals.push([
+          new Date(lastEntries[p.id].start_time).getTime(),
+          new Date(lastEntries[p.id].end_time).getTime(),
+        ]);
+      }
+    }
+    intervals.sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    for (const [s, e] of intervals) {
+      if (merged.length && s <= merged[merged.length - 1][1]) {
+        merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], e);
+      } else {
+        merged.push([s, e]);
+      }
+    }
+    const seg = merged.find(([s, e]) => s <= now && now <= e);
+    sessionStart = seg ? seg[0] : null;
+  }
 
   useEffect(() => {
     if (!sessionStart) { setBilledSecs(0); return; }
