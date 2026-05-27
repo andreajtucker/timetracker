@@ -544,7 +544,7 @@
 
 .report-header-row {
   display: grid;
-  grid-template-columns: 1fr 140px 155px 120px 50px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 50px;
   padding: 12px 20px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
@@ -563,7 +563,7 @@
 
 .report-project-summary {
   display: grid;
-  grid-template-columns: 1fr 140px 155px 120px 50px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 50px;
   padding: 16px 20px;
   align-items: center;
   cursor: pointer;
@@ -727,7 +727,7 @@
 
 .report-total-row {
   display: grid;
-  grid-template-columns: 1fr 140px 155px 120px 50px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 50px;
   padding: 14px 20px;
   background: #eff6ff;
   border-top: 2px solid var(--border);
