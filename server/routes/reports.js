@@ -60,18 +60,26 @@ router.get('/summary', async (req, res) => {
           AND ($2::int IS NULL OR te.project_id = $2)
       `, [companies, projectId, start, end]),
       pool.query(`
+        WITH daily AS (
+          SELECT
+            c.name AS company,
+            te.start_time::date AS day,
+            SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))) AS day_seconds
+          FROM time_entries te
+          JOIN projects p ON p.id = te.project_id
+          LEFT JOIN companies c ON c.id = p.company_id
+          WHERE te.end_time IS NOT NULL
+            AND te.start_time >= $3 AND te.start_time <= $4
+            AND (cardinality($1::text[]) = 0 OR c.name = ANY($1::text[]))
+            AND ($2::int IS NULL OR te.project_id = $2)
+          GROUP BY c.name, te.start_time::date
+        )
         SELECT
-          c.name AS company,
-          COUNT(DISTINCT te.project_id) AS project_count,
-          SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))) AS total_seconds
-        FROM time_entries te
-        JOIN projects p ON p.id = te.project_id
-        LEFT JOIN companies c ON c.id = p.company_id
-        WHERE te.end_time IS NOT NULL
-          AND te.start_time >= $3 AND te.start_time <= $4
-          AND (cardinality($1::text[]) = 0 OR c.name = ANY($1::text[]))
-          AND ($2::int IS NULL OR te.project_id = $2)
-        GROUP BY c.name
+          company,
+          SUM(day_seconds) AS total_seconds,
+          CAST(SUM(CEIL(day_seconds / 3600.0)) AS INTEGER) AS billed_hours
+        FROM daily
+        GROUP BY company
         ORDER BY total_seconds DESC
       `, [companies, projectId, start, end]),
     ]);
@@ -81,8 +89,8 @@ router.get('/summary', async (req, res) => {
       project_count: parseInt(totalResult.rows[0].project_count),
       by_company: byCompanyResult.rows.map(r => ({
         company: r.company || null,
-        project_count: parseInt(r.project_count),
         total_seconds: parseFloat(r.total_seconds),
+        billed_hours: parseInt(r.billed_hours) || 0,
       })),
     });
   } catch (err) {
@@ -95,43 +103,27 @@ router.get('/', async (req, res) => {
     const { period, start_date, end_date } = req.query;
     const { start, end } = getDateRange(period, start_date, end_date);
 
-    const [entriesResult, sessionsResult] = await Promise.all([
-      pool.query(`
-        SELECT
-          p.id AS project_id,
-          p.name AS project_name,
-          p.company_id AS project_company_id,
-          c.name AS project_company,
-          te.id AS entry_id,
-          te.start_time,
-          te.end_time,
-          te.description,
-          EXTRACT(EPOCH FROM (te.end_time - te.start_time)) AS duration_seconds
-        FROM projects p
-        LEFT JOIN companies c ON c.id = p.company_id
-        LEFT JOIN time_entries te
-          ON te.project_id = p.id
-          AND te.start_time >= $1
-          AND te.start_time <= $2
-          AND te.end_time IS NOT NULL
-        ORDER BY c.name NULLS LAST, p.name, te.start_time
-      `, [start, end]),
-      pool.query(`
-        SELECT
-          cs.id,
-          cs.company_id,
-          c.name AS company_name,
-          cs.start_time,
-          cs.end_time,
-          EXTRACT(EPOCH FROM (COALESCE(cs.end_time, NOW()) - cs.start_time)) AS session_seconds
-        FROM company_sessions cs
-        JOIN companies c ON c.id = cs.company_id
-        WHERE cs.start_time >= $1 AND cs.start_time <= $2
-        ORDER BY c.name, cs.start_time
-      `, [start, end]),
-    ]);
+    const entriesResult = await pool.query(`
+      SELECT
+        p.id AS project_id,
+        p.name AS project_name,
+        p.company_id AS project_company_id,
+        c.name AS project_company,
+        te.id AS entry_id,
+        te.start_time,
+        te.end_time,
+        te.description,
+        EXTRACT(EPOCH FROM (te.end_time - te.start_time)) AS duration_seconds
+      FROM projects p
+      LEFT JOIN companies c ON c.id = p.company_id
+      LEFT JOIN time_entries te
+        ON te.project_id = p.id
+        AND te.start_time >= $1
+        AND te.start_time <= $2
+        AND te.end_time IS NOT NULL
+      ORDER BY c.name NULLS LAST, p.name, te.start_time
+    `, [start, end]);
 
-    // Build projects map
     const projects = {};
     for (const row of entriesResult.rows) {
       if (!projects[row.project_id]) {
@@ -157,31 +149,7 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Build company sessions map
-    const companySessions = {};
-    for (const row of sessionsResult.rows) {
-      if (!companySessions[row.company_id]) {
-        companySessions[row.company_id] = {
-          company_id: row.company_id,
-          company_name: row.company_name,
-          total_session_seconds: 0,
-          sessions: [],
-        };
-      }
-      const secs = parseFloat(row.session_seconds);
-      companySessions[row.company_id].total_session_seconds += secs;
-      companySessions[row.company_id].sessions.push({
-        id: row.id,
-        start_time: row.start_time,
-        end_time: row.end_time,
-        session_seconds: secs,
-      });
-    }
-
-    res.json({
-      projects: Object.values(projects),
-      company_sessions: Object.values(companySessions),
-    });
+    res.json({ projects: Object.values(projects) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

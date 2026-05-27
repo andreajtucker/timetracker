@@ -626,6 +626,30 @@
   border-top: 1px solid var(--border);
 }
 
+.report-day-group {
+  border-bottom: 1px solid var(--border);
+}
+.report-day-group:last-child { border-bottom: none; }
+
+.report-day-header {
+  display: grid;
+  grid-template-columns: 1fr 180px 120px;
+  padding: 10px 28px;
+  font-size: 0.875rem;
+  background: #eef2ff;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.report-day-label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.report-day-billed {
+  font-size: 0.875rem;
+}
+
 .report-project-subgroup {
   border-bottom: 1px solid var(--border);
 }

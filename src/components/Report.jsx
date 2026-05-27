@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatDuration, formatTime, billedHours } from '../utils/time';
+import { formatDuration, formatTime } from '../utils/time';
 
 function getDateRange(entries) {
   if (!entries.length) return '—';
@@ -10,9 +10,23 @@ function getDateRange(entries) {
   return fmt(min) === fmt(max) ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
 }
 
+function dailyBilling(entries) {
+  const map = {};
+  for (const e of entries) {
+    const date = e.start_time.slice(0, 10);
+    map[date] = (map[date] || 0) + e.duration_seconds;
+  }
+  return Object.entries(map)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, seconds]) => ({ date, seconds, billed: Math.ceil(seconds / 3600) }));
+}
+
+function fmtDay(dateStr) {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 export default function Report({ filterCompanies = [], filterProjectId, period, startDate, endDate }) {
   const [projects, setProjects] = useState([]);
-  const [companySessions, setCompanySessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState({});
@@ -34,7 +48,6 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to load report');
       setProjects(json.projects || []);
-      setCompanySessions(json.company_sessions || []);
       setExpanded({});
     } catch (err) {
       setError(err.message);
@@ -58,10 +71,6 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
     return p.entries.length > 0;
   });
 
-  const sessionByCompanyId = Object.fromEntries(
-    companySessions.map(cs => [cs.company_id, cs])
-  );
-
   // Build company-level groups
   const groupMap = {};
   for (const p of filteredProjects) {
@@ -71,19 +80,21 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
         key,
         company_id: p.project_company_id,
         company_name: p.project_company,
-        session: p.project_company_id ? (sessionByCompanyId[p.project_company_id] ?? null) : null,
         total_logged_seconds: 0,
         all_entries: [],
         projects: [],
       };
     }
     groupMap[key].total_logged_seconds += p.total_seconds;
-    groupMap[key].all_entries.push(...p.entries);
+    // Attach project info to each entry for day-level grouping in expanded view
+    groupMap[key].all_entries.push(...p.entries.map(e => ({ ...e, project_id: p.project_id, project_name: p.project_name })));
     groupMap[key].projects.push(p);
   }
 
   for (const g of Object.values(groupMap)) {
     g.projects.sort((a, b) => a.project_name.localeCompare(b.project_name));
+    g.billing_days = g.company_id ? dailyBilling(g.all_entries) : [];
+    g.total_billed = g.billing_days.reduce((s, d) => s + d.billed, 0);
   }
 
   const groups = Object.values(groupMap).sort((a, b) => {
@@ -100,8 +111,8 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
       av = a.total_logged_seconds;
       bv = b.total_logged_seconds;
     } else {
-      av = a.session ? a.session.total_session_seconds : 0;
-      bv = b.session ? b.session.total_session_seconds : 0;
+      av = a.total_billed;
+      bv = b.total_billed;
     }
     if (av < bv) return sortDir === 'asc' ? -1 : 1;
     if (av > bv) return sortDir === 'asc' ? 1 : -1;
@@ -109,9 +120,7 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
   });
 
   const totalLoggedSeconds = filteredProjects.reduce((s, p) => s + p.total_seconds, 0);
-  const totalSessionSeconds = companySessions
-    .filter(cs => filterCompanies.length === 0 || filterCompanies.includes(cs.company_name))
-    .reduce((s, cs) => s + cs.total_session_seconds, 0);
+  const totalBilledHours = groups.reduce((s, g) => s + g.total_billed, 0);
 
   const hasData = groups.length > 0;
 
@@ -163,8 +172,8 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
             <span className="report-date">{getDateRange(group.all_entries)}</span>
             <span className="report-hours">{formatDuration(group.total_logged_seconds)}</span>
             <span className="report-billed">
-              {group.session
-                ? `${billedHours(group.session.total_session_seconds)} hr${billedHours(group.session.total_session_seconds) !== 1 ? 's' : ''}`
+              {group.company_id
+                ? `${group.total_billed} hr${group.total_billed !== 1 ? 's' : ''}`
                 : '—'}
             </span>
             <button className="expand-btn" onClick={e => { e.stopPropagation(); toggleExpand(group.key); }}>
@@ -174,28 +183,75 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
 
           {expanded[group.key] && (
             <div className="report-entries">
-              {group.projects.map(project => (
-                <div key={project.project_id} className="report-project-subgroup">
-                  <div className="report-project-subheader-row">
-                    <span className="report-subrow-name">{project.project_name}</span>
-                    <span className="report-date">{getDateRange(project.entries)}</span>
-                    <span className="entry-duration">{formatDuration(project.total_seconds)}</span>
-                  </div>
-                  {project.entries.map(entry => (
-                    <div key={entry.id} className="report-entry-row">
-                      <div className="report-entry-timestamps">
-                        <div><span className="report-entry-label">Start</span>{formatTime(entry.start_time)}</div>
-                        <div><span className="report-entry-label">End</span>{formatTime(entry.end_time)}</div>
+              {group.company_id ? (
+                group.billing_days.map(day => {
+                  const dayEntries = group.all_entries.filter(e => e.start_time.slice(0, 10) === day.date);
+                  const projectsForDay = {};
+                  for (const e of dayEntries) {
+                    if (!projectsForDay[e.project_id]) {
+                      projectsForDay[e.project_id] = { project_name: e.project_name, entries: [], total_seconds: 0 };
+                    }
+                    projectsForDay[e.project_id].entries.push(e);
+                    projectsForDay[e.project_id].total_seconds += e.duration_seconds;
+                  }
+                  const dayProjects = Object.values(projectsForDay).sort((a, b) => a.project_name.localeCompare(b.project_name));
+
+                  return (
+                    <div key={day.date} className="report-day-group">
+                      <div className="report-day-header">
+                        <span className="report-day-label">{fmtDay(day.date)}</span>
+                        <span className="report-date">{formatDuration(day.seconds)}</span>
+                        <span className="report-billed report-day-billed">{day.billed} hr{day.billed !== 1 ? 's' : ''} billable</span>
                       </div>
-                      <span className="report-entry-duration">{formatDuration(entry.duration_seconds)}</span>
-                      {entry.description
-                        ? <span className="entry-desc">{entry.description}</span>
-                        : <span className="entry-desc-empty">No description</span>
-                      }
+                      {dayProjects.map(proj => (
+                        <div key={proj.project_name} className="report-project-subgroup">
+                          <div className="report-project-subheader-row">
+                            <span className="report-subrow-name">{proj.project_name}</span>
+                            <span />
+                            <span className="entry-duration">{formatDuration(proj.total_seconds)}</span>
+                          </div>
+                          {proj.entries.map(entry => (
+                            <div key={entry.id} className="report-entry-row">
+                              <div className="report-entry-timestamps">
+                                <div><span className="report-entry-label">Start</span>{formatTime(entry.start_time)}</div>
+                                <div><span className="report-entry-label">End</span>{formatTime(entry.end_time)}</div>
+                              </div>
+                              <span className="report-entry-duration">{formatDuration(entry.duration_seconds)}</span>
+                              {entry.description
+                                ? <span className="entry-desc">{entry.description}</span>
+                                : <span className="entry-desc-empty">No description</span>
+                              }
+                            </div>
+                          ))}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ))}
+                  );
+                })
+              ) : (
+                group.projects.map(project => (
+                  <div key={project.project_id} className="report-project-subgroup">
+                    <div className="report-project-subheader-row">
+                      <span className="report-subrow-name">{project.project_name}</span>
+                      <span className="report-date">{getDateRange(project.entries)}</span>
+                      <span className="entry-duration">{formatDuration(project.total_seconds)}</span>
+                    </div>
+                    {project.entries.map(entry => (
+                      <div key={entry.id} className="report-entry-row">
+                        <div className="report-entry-timestamps">
+                          <div><span className="report-entry-label">Start</span>{formatTime(entry.start_time)}</div>
+                          <div><span className="report-entry-label">End</span>{formatTime(entry.end_time)}</div>
+                        </div>
+                        <span className="report-entry-duration">{formatDuration(entry.duration_seconds)}</span>
+                        {entry.description
+                          ? <span className="entry-desc">{entry.description}</span>
+                          : <span className="entry-desc-empty">No description</span>
+                        }
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
@@ -205,7 +261,7 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
         <span>Total</span>
         <span />
         <span>{formatDuration(totalLoggedSeconds)}</span>
-        <span>{billedHours(totalSessionSeconds)} hr{billedHours(totalSessionSeconds) !== 1 ? 's' : ''} billable</span>
+        <span>{totalBilledHours} hr{totalBilledHours !== 1 ? 's' : ''} billable</span>
         <span />
       </div>
     </div>

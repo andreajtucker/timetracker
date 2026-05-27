@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatDuration, billedHours } from '../utils/time';
+import { formatDuration } from '../utils/time';
 
 export default function Dashboard({ filterCompanies = [], filterProjectId, period, startDate, endDate }) {
   const [summary, setSummary] = useState(null);
@@ -40,7 +40,7 @@ export default function Dashboard({ filterCompanies = [], filterProjectId, perio
   const { total_seconds, project_count, by_company } = summary;
   const totalBilled = by_company
     .filter(row => row.company !== null)
-    .reduce((sum, row) => sum + billedHours(row.total_seconds), 0);
+    .reduce((sum, row) => sum + (row.billed_hours || 0), 0);
   const companyCount = by_company.filter(c => c.company).length;
 
   return (
@@ -69,7 +69,7 @@ export default function Dashboard({ filterCompanies = [], filterProjectId, perio
           <div className="company-breakdown">
             {by_company.map(row => {
               const pct = total_seconds > 0 ? (row.total_seconds / total_seconds) * 100 : 0;
-              const billed = billedHours(row.total_seconds);
+              const billed = row.billed_hours || 0;
               return (
                 <div key={row.company ?? '__none__'} className="company-row">
                   <div className="company-row-header">
