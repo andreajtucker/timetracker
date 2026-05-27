@@ -42,7 +42,7 @@ function fmtDay(dateStr) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export default function Report({ filterCompanies = [], filterProjectId, period, startDate, endDate }) {
+export default function Report({ filterCompanies = [], filterProjectIds = [], period, startDate, endDate }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -84,7 +84,7 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
 
   const filteredProjects = projects.filter(p => {
     if (filterCompanies.length > 0 && !filterCompanies.includes(p.project_company)) return false;
-    if (filterProjectId && p.project_id !== Number(filterProjectId)) return false;
+    if (filterProjectIds.length > 0 && !filterProjectIds.includes(String(p.project_id))) return false;
     return p.entries.length > 0;
   });
 
@@ -174,7 +174,7 @@ export default function Report({ filterCompanies = [], filterProjectId, period, 
       <div className="report-header-row">
         <SortHeader col="company" label="Company" />
         <SortHeader col="date" label="Date Logged" />
-        <SortHeader col="time" label="Time Logged" />
+        <SortHeader col="time" label="Project Time Logged" />
         <SortHeader col="billed" label="Billable Hours" />
         <span />
       </div>

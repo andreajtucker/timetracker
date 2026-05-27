@@ -18,6 +18,12 @@ function mergeIntervals(intervals) {
 function getDateRange(period, start_date, end_date) {
   const now = new Date();
 
+  if (period === 'today') {
+    return {
+      start: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0),
+      end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999),
+    };
+  }
   if (period === 'month') {
     return {
       start: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0),
@@ -54,7 +60,10 @@ router.get('/summary', async (req, res) => {
     const companies = companyRaw
       ? (Array.isArray(companyRaw) ? companyRaw : [companyRaw])
       : [];
-    const projectId = req.query.project_id ? parseInt(req.query.project_id) : null;
+    const projectIdsRaw = req.query.project_id;
+    const projectIds = projectIdsRaw
+      ? (Array.isArray(projectIdsRaw) ? projectIdsRaw.map(Number) : [parseInt(projectIdsRaw)])
+      : [];
     const { period, start_date, end_date } = req.query;
     const { start, end } = getDateRange(period, start_date, end_date);
 
@@ -69,8 +78,8 @@ router.get('/summary', async (req, res) => {
         WHERE te.end_time IS NOT NULL
           AND te.start_time >= $3 AND te.start_time <= $4
           AND (cardinality($1::text[]) = 0 OR c.name = ANY($1::text[]))
-          AND ($2::int IS NULL OR te.project_id = $2)
-      `, [companies, projectId, start, end]),
+          AND (cardinality($2::int[]) = 0 OR te.project_id = ANY($2::int[]))
+      `, [companies, projectIds, start, end]),
       pool.query(`
         SELECT
           c.id AS company_id,
@@ -85,9 +94,9 @@ router.get('/summary', async (req, res) => {
         WHERE te.end_time IS NOT NULL
           AND te.start_time >= $3 AND te.start_time <= $4
           AND (cardinality($1::text[]) = 0 OR c.name = ANY($1::text[]))
-          AND ($2::int IS NULL OR te.project_id = $2)
+          AND (cardinality($2::int[]) = 0 OR te.project_id = ANY($2::int[]))
         ORDER BY c.id, te.start_time::date, te.start_time
-      `, [companies, projectId, start, end]),
+      `, [companies, projectIds, start, end]),
     ]);
 
     // Group by company → day → intervals, then merge overlaps before billing
