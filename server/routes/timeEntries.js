@@ -118,6 +118,19 @@ router.put('/:id/stop', async (req, res) => {
   }
 });
 
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM time_entries WHERE id = $1 AND end_time IS NOT NULL RETURNING *',
+      [req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Entry not found or still active' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.put('/:id/description', async (req, res) => {
   try {
     const { description } = req.body;

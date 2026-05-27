@@ -308,6 +308,7 @@ export default function App() {
         <SessionsModal
           project={sessionsModal}
           onClose={() => setSessionsModal(null)}
+          onSessionDeleted={loadData}
         />
       )}
     </>

@@ -1172,7 +1172,7 @@
 .sessions-list-row,
 .sessions-list-total {
   display: grid;
-  grid-template-columns: 100px 80px 80px 100px 1fr;
+  grid-template-columns: 100px 80px 80px 100px 1fr 32px;
   gap: 12px;
   padding: 10px 28px;
   align-items: center;
@@ -1210,4 +1210,20 @@
 .sessions-time { color: var(--text); font-variant-numeric: tabular-nums; }
 .sessions-duration { font-weight: 600; }
 .sessions-desc { color: var(--text-muted); font-size: 0.825rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sessions-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.sessions-list-row:hover .sessions-delete-btn { opacity: 1; }
+.sessions-delete-btn:hover { color: var(--red); background: rgba(239, 68, 68, 0.08); }
 

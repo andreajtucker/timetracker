@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatDuration, formatDate, formatTime } from '../utils/time';
 
-export default function SessionsModal({ project, onClose }) {
+export default function SessionsModal({ project, onClose, onSessionDeleted }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,6 +17,14 @@ export default function SessionsModal({ project, onClose }) {
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
+
+  async function handleDelete(entryId) {
+    if (!confirm('Delete this session? This cannot be undone.')) return;
+    const res = await fetch(`/api/time-entries/${entryId}`, { method: 'DELETE' });
+    if (!res.ok) return;
+    setEntries(prev => prev.filter(e => e.id !== entryId));
+    onSessionDeleted?.();
+  }
 
   const totalSeconds = entries.reduce((s, e) => s + parseFloat(e.duration_seconds || 0), 0);
 
@@ -45,6 +53,7 @@ export default function SessionsModal({ project, onClose }) {
               <span>End</span>
               <span>Duration</span>
               <span>Notes</span>
+              <span />
             </div>
             {entries.map(entry => (
               <div key={entry.id} className="sessions-list-row">
@@ -55,6 +64,18 @@ export default function SessionsModal({ project, onClose }) {
                 <span className="sessions-desc">
                   {entry.description || <span className="entry-desc-empty">—</span>}
                 </span>
+                <button
+                  className="sessions-delete-btn"
+                  onClick={() => handleDelete(entry.id)}
+                  title="Delete session"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    <path d="M10 11v6M14 11v6"/>
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
+                </button>
               </div>
             ))}
             <div className="sessions-list-total">
@@ -62,6 +83,7 @@ export default function SessionsModal({ project, onClose }) {
               <span />
               <span />
               <span>{formatDuration(totalSeconds)}</span>
+              <span />
               <span />
             </div>
           </div>
