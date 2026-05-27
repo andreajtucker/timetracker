@@ -10,15 +10,32 @@ function getDateRange(entries) {
   return fmt(min) === fmt(max) ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
 }
 
+function mergeIntervals(intervals) {
+  if (!intervals.length) return [];
+  const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+  const merged = [[...sorted[0]]];
+  for (const [s, e] of sorted.slice(1)) {
+    const last = merged[merged.length - 1];
+    if (s <= last[1]) last[1] = Math.max(last[1], e);
+    else merged.push([s, e]);
+  }
+  return merged;
+}
+
 function dailyBilling(entries) {
   const map = {};
   for (const e of entries) {
     const date = e.start_time.slice(0, 10);
-    map[date] = (map[date] || 0) + e.duration_seconds;
+    if (!map[date]) map[date] = { logged: 0, intervals: [] };
+    map[date].logged += e.duration_seconds;
+    map[date].intervals.push([new Date(e.start_time).getTime(), new Date(e.end_time).getTime()]);
   }
   return Object.entries(map)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, seconds]) => ({ date, seconds, billed: Math.ceil(seconds / 3600) }));
+    .map(([date, { logged, intervals }]) => {
+      const wall = mergeIntervals(intervals).reduce((s, [st, en]) => s + (en - st) / 1000, 0);
+      return { date, seconds: logged, billed: Math.ceil(wall / 3600) };
+    });
 }
 
 function fmtDay(dateStr) {
