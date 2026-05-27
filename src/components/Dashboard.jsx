@@ -65,11 +65,11 @@ export default function Dashboard({ filterCompanies = [], filterProjectId, perio
 
       {by_company.length > 0 && (
         <div className="dashboard-section">
-          <h3 className="dashboard-section-title">Hours by Company</h3>
+          <h3 className="dashboard-section-title">Billable Hours by Company</h3>
           <div className="company-breakdown">
             {by_company.map(row => {
-              const pct = total_seconds > 0 ? (row.total_seconds / total_seconds) * 100 : 0;
               const billed = row.billed_hours || 0;
+              const pct = totalBilled > 0 ? (billed / totalBilled) * 100 : 0;
               return (
                 <div key={row.company ?? '__none__'} className="company-row">
                   <div className="company-row-header">
@@ -77,10 +77,9 @@ export default function Dashboard({ filterCompanies = [], filterProjectId, perio
                       {row.company ?? <span className="company-row-none">No company</span>}
                     </span>
                     <span className="company-row-time">
-                      {formatDuration(row.total_seconds)}
-                      {row.company && (
-                        <span className="company-row-billed">{billed} hr{billed !== 1 ? 's' : ''} billable</span>
-                      )}
+                      {row.company
+                        ? `${billed} hr${billed !== 1 ? 's' : ''} billable`
+                        : formatDuration(row.total_seconds)}
                     </span>
                   </div>
                   <div className="company-bar-track">
