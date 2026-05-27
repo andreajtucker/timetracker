@@ -5,10 +5,21 @@ import ProjectCard from './ProjectCard';
 export default function CompanyGroup({ company, projects, activeEntries, lastEntries, companies, notificationsEnabled, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription, onViewSessions }) {
   const [billedSecs, setBilledSecs] = useState(0);
 
-  // Company session start = earliest active project start for this company
+  // Company session start: begins when the first project in this session starts,
+  // continues until all projects stop. Include stopped projects whose end_time
+  // falls within the current active session (they ran concurrently this session).
   const activeProjects = projects.filter(p => activeEntries[p.id]);
-  const sessionStart = activeProjects.length > 0
+  const earliestActiveStart = activeProjects.length > 0
     ? Math.min(...activeProjects.map(p => new Date(activeEntries[p.id].start_time).getTime()))
+    : null;
+  const sessionStart = earliestActiveStart !== null
+    ? Math.min(
+        earliestActiveStart,
+        ...projects
+          .filter(p => !activeEntries[p.id] && lastEntries[p.id] &&
+                       new Date(lastEntries[p.id].end_time).getTime() >= earliestActiveStart)
+          .map(p => new Date(lastEntries[p.id].start_time).getTime())
+      )
     : null;
 
   useEffect(() => {
