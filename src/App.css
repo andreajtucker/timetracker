@@ -1251,3 +1251,16 @@
 .sessions-list-row:hover .sessions-delete-btn { opacity: 1; }
 .sessions-delete-btn:hover { color: var(--red); background: rgba(239, 68, 68, 0.08); }
 
+.app-version {
+  position: fixed;
+  bottom: 6px;
+  right: 10px;
+  font-size: 0.65rem;
+  font-family: monospace;
+  color: var(--text-muted);
+  opacity: 0.35;
+  cursor: default;
+  user-select: none;
+}
+.app-version:hover { opacity: 0.8; }
+

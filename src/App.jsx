@@ -311,6 +311,8 @@ export default function App() {
           onSessionDeleted={loadData}
         />
       )}
+
+      <footer className="app-version" title={__GIT_LOG__}>{__GIT_SHA__}</footer>
     </>
   );
 }
