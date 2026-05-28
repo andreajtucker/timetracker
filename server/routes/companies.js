@@ -44,11 +44,18 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
+  const client = await pool.connect();
   try {
-    await pool.query('DELETE FROM companies WHERE id = $1', [req.params.id]);
+    await client.query('BEGIN');
+    await client.query('DELETE FROM projects WHERE company_id = $1', [req.params.id]);
+    await client.query('DELETE FROM companies WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
