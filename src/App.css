@@ -263,6 +263,8 @@
   color: var(--text-muted);
   font-weight: 600;
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
 }
 
 .last-session-info {
