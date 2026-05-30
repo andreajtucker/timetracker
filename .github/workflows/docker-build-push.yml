@@ -83,6 +83,8 @@ jobs:
         with:
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            GIT_SHA=${{ github.sha }}
           context: .
           labels: ${{ steps.meta.outputs.labels }}
           # platforms: linux/amd64,linux/arm64

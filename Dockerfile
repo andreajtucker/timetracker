@@ -4,6 +4,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+ARG GIT_SHA=unknown
+ARG GIT_LOG=
+ENV GIT_SHA=$GIT_SHA
+ENV GIT_LOG=$GIT_LOG
 RUN npm run build
 
 # Stage 2: Production server

@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import { execSync } from 'child_process'
 
 function gitInfo() {
+  if (process.env.GIT_SHA && process.env.GIT_SHA !== 'unknown') {
+    return { sha: process.env.GIT_SHA.slice(0, 7), log: process.env.GIT_LOG || '' };
+  }
   try {
     return {
       sha: execSync('git rev-parse --short HEAD').toString().trim(),
