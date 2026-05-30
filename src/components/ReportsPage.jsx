@@ -65,7 +65,7 @@ export default function ReportsPage() {
           options={projectsForCompany.map(p => ({ value: String(p.id), label: p.name }))}
           selected={filterProjectIds}
           onChange={setFilterProjectIds}
-          placeholder="All Projects"
+          placeholder="All Tasks"
         />
 
         <div className="filter-divider" />

@@ -58,7 +58,7 @@ export default function Dashboard({ filterCompanies = [], filterProjectIds = [],
           <div className="stat-sub">with logged time</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Projects</div>
+          <div className="stat-label">Tasks</div>
           <div className="stat-value">{project_count}</div>
           <div className="stat-sub">tracked</div>
         </div>

@@ -18,6 +18,11 @@
   color: var(--primary);
   letter-spacing: -0.02em;
 }
+.app-logo {
+  cursor: pointer;
+  user-select: none;
+}
+.app-logo:hover { opacity: 0.8; }
 
 .app-nav {
   display: flex;

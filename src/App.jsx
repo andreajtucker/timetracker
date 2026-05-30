@@ -215,7 +215,7 @@ export default function App() {
   return (
     <>
       <header className="app-header">
-        <h1>⏱ TimeTracker</h1>
+        <h1 className="app-logo" onClick={() => setTab('tracker')}>⏱ TimeTracker</h1>
         <nav className="app-nav">
           {['tracker', 'reports', 'settings'].map(t => (
             <button key={t} className={`nav-btn${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
@@ -229,7 +229,7 @@ export default function App() {
         {tab === 'tracker' && (
           <>
             <div className="tracker-header">
-              <h2>Projects</h2>
+              <h2>Tasks</h2>
               {companies.length > 0 && (
                 <MultiSelectDropdown
                   options={companies.map(c => ({ value: c.name, label: c.name }))}

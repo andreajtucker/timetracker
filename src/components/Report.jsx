@@ -179,7 +179,7 @@ export default function Report({ filterCompanies = [], filterProjectIds = [], pe
       <div className="report-header-row">
         <SortHeader col="company" label="Company" />
         <SortHeader col="date" label="Date Logged" />
-        <SortHeader col="time" label="Project Time Logged" />
+        <SortHeader col="time" label="Task Time Logged" />
         <SortHeader col="billed" label="Billable Hours" />
         <span />
       </div>

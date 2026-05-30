@@ -82,7 +82,7 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
             value={editName}
             onChange={e => setEditName(e.target.value)}
             onKeyDown={handleEditKeyDown}
-            placeholder="Project name"
+            placeholder="Task name"
             autoFocus
             maxLength={100}
           />

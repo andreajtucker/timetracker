@@ -10,7 +10,7 @@ export default function AddProjectForm({ companies, onAdd }) {
     e.preventDefault();
     setError('');
     const trimmed = name.trim();
-    if (!trimmed) { setError('Enter a project name.'); return; }
+    if (!trimmed) { setError('Enter a task name.'); return; }
     if (!companyId) { setError('Select a company.'); return; }
 
     try {
@@ -42,14 +42,14 @@ export default function AddProjectForm({ companies, onAdd }) {
       {!expanded ? (
         <div className="add-project-placeholder">
           <button className="plus-icon" onClick={() => setExpanded(true)}>+</button>
-          <span>Add Project</span>
+          <span>Add Task</span>
         </div>
       ) : (
         <form className="add-project-form" onSubmit={handleSubmit} style={{ flexDirection: 'column', gap: 8, width: '100%' }}>
           <div style={{ display: 'flex', gap: 8, width: '100%', minWidth: 0 }}>
             <input
               className="add-project-input"
-              placeholder="Project name"
+              placeholder="Task name"
               value={name}
               onChange={e => setName(e.target.value)}
               autoFocus
