@@ -15,43 +15,42 @@ function mergeIntervals(intervals) {
   return merged;
 }
 
-function getDateRange(period, start_date, end_date) {
-  const now = new Date();
+function getDateRange(period, start_date, end_date, tzOffset = 0) {
+  // Shift "now" into the user's local time using UTC methods
+  const localNow = new Date(Date.now() - tzOffset * 60 * 1000);
+  const y = localNow.getUTCFullYear();
+  const mo = localNow.getUTCMonth();
+  const d = localNow.getUTCDate();
+  const dow = localNow.getUTCDay();
+
+  // Start of a local calendar day expressed as a UTC Date
+  const midnight = (year, month, date) =>
+    new Date(Date.UTC(year, month, date) + tzOffset * 60 * 1000);
+  // End of a local calendar day expressed as a UTC Date
+  const endOfDay = (year, month, date) =>
+    new Date(Date.UTC(year, month, date + 1) + tzOffset * 60 * 1000 - 1);
 
   if (period === 'today') {
-    return {
-      start: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0),
-      end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999),
-    };
+    return { start: midnight(y, mo, d), end: endOfDay(y, mo, d) };
   }
   if (period === 'month') {
-    return {
-      start: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0),
-      end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
-    };
+    return { start: midnight(y, mo, 1), end: endOfDay(y, mo + 1, 0) };
   }
   if (period === 'last_month') {
-    return {
-      start: new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0),
-      end: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999),
-    };
+    return { start: midnight(y, mo - 1, 1), end: endOfDay(y, mo, 0) };
   }
   if (period === 'custom' && start_date && end_date) {
-    const end = new Date(end_date);
-    end.setHours(23, 59, 59, 999);
-    return { start: new Date(start_date), end };
+    const [sy, sm, sd] = start_date.split('-').map(Number);
+    const [ey, em, ed] = end_date.split('-').map(Number);
+    return { start: midnight(sy, sm - 1, sd), end: endOfDay(ey, em - 1, ed) };
   }
 
   // Default: current week (Mon–Sun)
-  const day = now.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const start = new Date(now);
-  start.setDate(now.getDate() + diff);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
+  const diff = dow === 0 ? -6 : 1 - dow;
+  return {
+    start: midnight(y, mo, d + diff),
+    end: endOfDay(y, mo, d + diff + 6),
+  };
 }
 
 router.get('/summary', async (req, res) => {
@@ -66,7 +65,7 @@ router.get('/summary', async (req, res) => {
       : [];
     const { period, start_date, end_date, tz_offset } = req.query;
     const tzOffsetMinutes = parseInt(tz_offset) || 0;
-    const { start, end } = getDateRange(period, start_date, end_date);
+    const { start, end } = getDateRange(period, start_date, end_date, tzOffsetMinutes);
 
     const [totalResult, rawEntries] = await Promise.all([
       pool.query(`
@@ -135,8 +134,8 @@ router.get('/summary', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { period, start_date, end_date } = req.query;
-    const { start, end } = getDateRange(period, start_date, end_date);
+    const { period, start_date, end_date, tz_offset } = req.query;
+    const { start, end } = getDateRange(period, start_date, end_date, parseInt(tz_offset) || 0);
 
     const entriesResult = await pool.query(`
       SELECT

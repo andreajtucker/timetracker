@@ -64,7 +64,7 @@ export default function Report({ filterCompanies = [], filterProjectIds = [], pe
     setLoading(true);
     setError(null);
     try {
-      let url = `/api/reports?period=${period}`;
+      let url = `/api/reports?period=${period}&tz_offset=${new Date().getTimezoneOffset()}`;
       if (period === 'custom') url += `&start_date=${startDate}&end_date=${endDate}`;
       const res = await fetch(url);
       const json = await res.json();
