@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { billedHours } from '../utils/time';
 import ProjectCard from './ProjectCard';
 
-export default function CompanyGroup({ company, projects, activeEntries, lastEntries, companies, notificationsEnabled, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription, onViewSessions }) {
+export default function CompanyGroup({ company, projects, activeEntries, lastEntries, companies, notificationsEnabled, onStart, onStop, onEditSession, onDelete, onArchive, onEdit, onAddDescription, onViewSessions }) {
   const [billedSecs, setBilledSecs] = useState(0);
 
   // Merge all entry intervals (active = [start, ∞], last = [start, end]) to find
@@ -67,6 +67,7 @@ export default function CompanyGroup({ company, projects, activeEntries, lastEnt
             notificationsEnabled={notificationsEnabled}
             onStart={onStart}
             onStop={onStop}
+            onEditSession={onEditSession}
             onDelete={onDelete}
             onArchive={onArchive}
             onEdit={onEdit}

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatElapsed, formatDuration, formatDateTime } from '../utils/time';
+import { formatElapsed, formatDuration, formatDateTime, toDatetimeLocal } from '../utils/time';
 
 const WARN_SECONDS = 55 * 60;
 
-export default function ProjectCard({ project, activeEntry, lastEntry, companies = [], notificationsEnabled, onStart, onStop, onDelete, onArchive, onEdit, onAddDescription, onViewSessions }) {
+export default function ProjectCard({ project, activeEntry, lastEntry, companies = [], notificationsEnabled, onStart, onStop, onEditSession, onDelete, onArchive, onEdit, onAddDescription, onViewSessions }) {
   const [elapsed, setElapsed] = useState(0);
   const warnedRef = useRef(false);
   const [description, setDescription] = useState('');
@@ -11,6 +11,10 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editCompanyId, setEditCompanyId] = useState('');
+  const [editingSession, setEditingSession] = useState(false);
+  const [sessionEditStart, setSessionEditStart] = useState('');
+  const [sessionEditEnd, setSessionEditEnd] = useState('');
+  const [sessionEditDesc, setSessionEditDesc] = useState('');
   const menuRef = useRef(null);
   const intervalRef = useRef(null);
 
@@ -61,6 +65,22 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
     setEditCompanyId(project.company_id ? String(project.company_id) : '');
     setIsEditing(true);
     setMenuOpen(false);
+  }
+
+  function startSessionEdit() {
+    setSessionEditStart(toDatetimeLocal(lastEntry.start_time));
+    setSessionEditEnd(toDatetimeLocal(lastEntry.end_time));
+    setSessionEditDesc(lastEntry.description || '');
+    setEditingSession(true);
+  }
+
+  async function handleSaveSessionEdit() {
+    await onEditSession(lastEntry.id, {
+      start_time: new Date(sessionEditStart).toISOString(),
+      end_time: new Date(sessionEditEnd).toISOString(),
+      description: sessionEditDesc.trim() || null,
+    });
+    setEditingSession(false);
   }
 
   async function handleSaveEdit() {
@@ -151,27 +171,48 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
 
       {lastEntry && !isRunning && (
         <div className="last-session">
-          <div className="last-session-label">Last Session</div>
-          <div className="last-session-info">
-            <div className="session-time">
-              <span>{formatDateTime(lastEntry.start_time)}</span>
-              <span className="session-duration">{formatDuration(lastEntry.duration_seconds)}</span>
-            </div>
-            {lastEntry.description ? (
-              <div className="session-desc-row">
-                <span className="session-desc" title={lastEntry.description}>{lastEntry.description}</span>
-                <button className="edit-desc-btn" onClick={() => onAddDescription(lastEntry, project.name)} title="Edit description">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <button className="add-desc-btn" onClick={() => onAddDescription(lastEntry, project.name)}>
-                + Add description
+          <div className="last-session-label">
+            Last Session
+            {!editingSession && (
+              <button className="edit-desc-btn" onClick={startSessionEdit} title="Edit session" style={{ marginLeft: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
               </button>
             )}
           </div>
+          {editingSession ? (
+            <div className="session-edit-form">
+              <label className="session-edit-field">
+                <span>Start</span>
+                <input type="datetime-local" value={sessionEditStart} onChange={e => setSessionEditStart(e.target.value)} />
+              </label>
+              <label className="session-edit-field">
+                <span>End</span>
+                <input type="datetime-local" value={sessionEditEnd} onChange={e => setSessionEditEnd(e.target.value)} />
+              </label>
+              <label className="session-edit-field">
+                <span>Notes</span>
+                <input type="text" value={sessionEditDesc} onChange={e => setSessionEditDesc(e.target.value)} placeholder="Notes" maxLength={200} />
+              </label>
+              <div className="session-edit-actions">
+                <button className="btn-secondary" style={{ padding: '5px 10px', fontSize: '0.8rem' }} onClick={() => setEditingSession(false)}>Cancel</button>
+                <button className="btn-primary" style={{ padding: '5px 10px', fontSize: '0.8rem' }} onClick={handleSaveSessionEdit}>Save</button>
+              </div>
+            </div>
+          ) : (
+            <div className="last-session-info">
+              <div className="session-time">
+                <span>{formatDateTime(lastEntry.start_time)}</span>
+                <span className="session-duration">{formatDuration(lastEntry.duration_seconds)}</span>
+              </div>
+              {lastEntry.description ? (
+                <div className="session-desc-row">
+                  <span className="session-desc" title={lastEntry.description}>{lastEntry.description}</span>
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
       )}
     </div>

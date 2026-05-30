@@ -77,6 +77,23 @@ export default function App() {
     setActiveEntries(prev => ({ ...prev, [projectId]: entry }));
   }
 
+  async function handleEditSession(entryId, updates) {
+    const res = await fetch(`/api/time-entries/${entryId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) return;
+    const updated = await res.json();
+    setLastEntries(prev => {
+      const next = { ...prev };
+      for (const [pid, entry] of Object.entries(next)) {
+        if (entry.id === entryId) next[pid] = updated;
+      }
+      return next;
+    });
+  }
+
   async function handleStop(projectId, entryId, description) {
     const prevTotal = parseFloat(activeEntries[projectId]?.total_seconds) || 0;
     const res = await fetch(`/api/time-entries/${entryId}/stop`, { method: 'PUT' });
@@ -205,6 +222,7 @@ export default function App() {
     notificationsEnabled,
     onStart: handleStart,
     onStop: handleStop,
+    onEditSession: handleEditSession,
     onDelete: handleDelete,
     onArchive: handleArchive,
     onEdit: handleEdit,
@@ -311,6 +329,7 @@ export default function App() {
           project={sessionsModal}
           onClose={() => setSessionsModal(null)}
           onSessionDeleted={loadData}
+          onSessionEdited={loadData}
         />
       )}
 

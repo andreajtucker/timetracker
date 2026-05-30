@@ -137,6 +137,29 @@ router.put('/:id/stop', async (req, res) => {
   }
 });
 
+router.put('/:id', async (req, res) => {
+  try {
+    const { start_time, end_time, description } = req.body;
+    const result = await pool.query(
+      `UPDATE time_entries
+       SET start_time = $1, end_time = $2, description = $3
+       WHERE id = $4 AND end_time IS NOT NULL
+       RETURNING *,
+         EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds,
+         COALESCE((
+           SELECT SUM(EXTRACT(EPOCH FROM (end_time - start_time)))
+           FROM time_entries t2
+           WHERE t2.project_id = time_entries.project_id AND t2.end_time IS NOT NULL
+         ), 0) AS total_seconds`,
+      [new Date(start_time), new Date(end_time), description ?? null, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Entry not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   try {
     const result = await pool.query(

@@ -1240,6 +1240,57 @@
 .sessions-duration { font-weight: 600; }
 .sessions-desc { color: var(--text-muted); font-size: 0.825rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.sessions-row-actions { display: flex; gap: 2px; align-items: center; justify-content: flex-end; }
+.sessions-edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.sessions-list-row:hover .sessions-edit-btn { opacity: 1; }
+.sessions-edit-btn:hover { color: var(--primary); background: rgba(99, 102, 241, 0.08); }
+
+.sessions-edit-row {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.sessions-edit-fields {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.sessions-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.sessions-edit-field input { font-size: 0.825rem; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); background: var(--card-bg); }
+.sessions-edit-desc-field { flex: 1; min-width: 160px; }
+.sessions-edit-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.session-edit-form { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.session-edit-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.session-edit-field span { min-width: 36px; }
+.session-edit-field input { flex: 1; font-size: 0.825rem; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); background: var(--card-bg); }
+.session-edit-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
 .sessions-delete-btn {
   background: none;
   border: none;
