@@ -72,6 +72,12 @@ router.post('/', async (req, res) => {
       [project_id]
     );
     const entry = result.rows[0];
+    const totals = await pool.query(
+      `SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (end_time - start_time))), 0) AS total_seconds
+       FROM time_entries WHERE project_id = $1 AND end_time IS NOT NULL`,
+      [project_id]
+    );
+    entry.total_seconds = parseFloat(totals.rows[0].total_seconds);
 
     // Open a company session if this is the first active project for the company
     const proj = await pool.query('SELECT company_id FROM projects WHERE id = $1', [project_id]);
