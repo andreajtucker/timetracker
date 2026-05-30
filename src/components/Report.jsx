@@ -22,10 +22,15 @@ function mergeIntervals(intervals) {
   return merged;
 }
 
+function localDateStr(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function dailyBilling(entries) {
   const map = {};
   for (const e of entries) {
-    const date = e.start_time.slice(0, 10);
+    const date = localDateStr(e.start_time);
     if (!map[date]) map[date] = { logged: 0, intervals: [] };
     map[date].logged += e.duration_seconds;
     map[date].intervals.push([new Date(e.start_time).getTime(), new Date(e.end_time).getTime()]);
@@ -202,7 +207,7 @@ export default function Report({ filterCompanies = [], filterProjectIds = [], pe
             <div className="report-entries">
               {group.company_id ? (
                 group.billing_days.map(day => {
-                  const dayEntries = group.all_entries.filter(e => e.start_time.slice(0, 10) === day.date);
+                  const dayEntries = group.all_entries.filter(e => localDateStr(e.start_time) === day.date);
                   const projectsForDay = {};
                   for (const e of dayEntries) {
                     if (!projectsForDay[e.project_id]) {

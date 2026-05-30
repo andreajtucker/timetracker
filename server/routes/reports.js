@@ -64,7 +64,8 @@ router.get('/summary', async (req, res) => {
     const projectIds = projectIdsRaw
       ? (Array.isArray(projectIdsRaw) ? projectIdsRaw.map(Number) : [parseInt(projectIdsRaw)])
       : [];
-    const { period, start_date, end_date } = req.query;
+    const { period, start_date, end_date, tz_offset } = req.query;
+    const tzOffsetMinutes = parseInt(tz_offset) || 0;
     const { start, end } = getDateRange(period, start_date, end_date);
 
     const [totalResult, rawEntries] = await Promise.all([
@@ -84,7 +85,6 @@ router.get('/summary', async (req, res) => {
         SELECT
           c.id AS company_id,
           c.name AS company,
-          te.start_time::date AS day,
           te.start_time,
           te.end_time,
           EXTRACT(EPOCH FROM (te.end_time - te.start_time)) AS duration_seconds
@@ -95,18 +95,20 @@ router.get('/summary', async (req, res) => {
           AND te.start_time >= $3 AND te.start_time <= $4
           AND (cardinality($1::text[]) = 0 OR c.name = ANY($1::text[]))
           AND (cardinality($2::int[]) = 0 OR te.project_id = ANY($2::int[]))
-        ORDER BY c.id, te.start_time::date, te.start_time
+        ORDER BY c.id, te.start_time
       `, [companies, projectIds, start, end]),
     ]);
 
-    // Group by company → day → intervals, then merge overlaps before billing
+    // Group by company → local day → intervals, then merge overlaps before billing
     const companyMap = {};
     for (const row of rawEntries.rows) {
       const cKey = row.company_id ?? '__none__';
       if (!companyMap[cKey]) {
         companyMap[cKey] = { company: row.company || null, total_seconds: 0, days: {} };
       }
-      const dayKey = String(row.day);
+      const localMs = new Date(row.start_time).getTime() - tzOffsetMinutes * 60 * 1000;
+      const local = new Date(localMs);
+      const dayKey = `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, '0')}-${String(local.getUTCDate()).padStart(2, '0')}`;
       if (!companyMap[cKey].days[dayKey]) companyMap[cKey].days[dayKey] = [];
       companyMap[cKey].total_seconds += parseFloat(row.duration_seconds);
       companyMap[cKey].days[dayKey].push([new Date(row.start_time).getTime(), new Date(row.end_time).getTime()]);

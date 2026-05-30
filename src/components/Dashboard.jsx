@@ -21,6 +21,7 @@ export default function Dashboard({ filterCompanies = [], filterProjectIds = [],
           params.set('start_date', startDate);
           params.set('end_date', endDate);
         }
+        params.set('tz_offset', new Date().getTimezoneOffset());
         const res = await fetch(`/api/reports/summary?${params}`);
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Failed to load summary');
