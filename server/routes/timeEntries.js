@@ -5,7 +5,15 @@ const router = express.Router();
 
 router.get('/active', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM time_entries WHERE end_time IS NULL');
+    const result = await pool.query(`
+      SELECT te.*,
+        COALESCE((
+          SELECT SUM(EXTRACT(EPOCH FROM (end_time - start_time)))
+          FROM time_entries t2
+          WHERE t2.project_id = te.project_id AND t2.end_time IS NOT NULL
+        ), 0) AS total_seconds
+      FROM time_entries te WHERE te.end_time IS NULL
+    `);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -16,8 +24,13 @@ router.get('/last', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT DISTINCT ON (project_id) *,
-        EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds
-      FROM time_entries
+        EXTRACT(EPOCH FROM (end_time - start_time)) AS duration_seconds,
+        COALESCE((
+          SELECT SUM(EXTRACT(EPOCH FROM (end_time - start_time)))
+          FROM time_entries t2
+          WHERE t2.project_id = te.project_id AND t2.end_time IS NOT NULL
+        ), 0) AS total_seconds
+      FROM time_entries te
       WHERE end_time IS NOT NULL
       ORDER BY project_id, start_time DESC
     `);

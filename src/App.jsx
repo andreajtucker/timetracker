@@ -78,9 +78,11 @@ export default function App() {
   }
 
   async function handleStop(projectId, entryId, description) {
+    const prevTotal = parseFloat(activeEntries[projectId]?.total_seconds) || 0;
     const res = await fetch(`/api/time-entries/${entryId}/stop`, { method: 'PUT' });
     if (!res.ok) return;
     const entry = await res.json();
+    entry.total_seconds = prevTotal + parseFloat(entry.duration_seconds || 0);
     setActiveEntries(prev => { const n = { ...prev }; delete n[projectId]; return n; });
     if (description?.trim()) {
       await fetch(`/api/time-entries/${entryId}/description`, {

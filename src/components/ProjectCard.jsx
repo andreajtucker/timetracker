@@ -26,10 +26,12 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
 
   useEffect(() => {
     if (isRunning) {
+      const startMs = new Date(activeEntry.start_time).getTime();
+      const baseSecs = parseFloat(activeEntry.total_seconds) || 0;
       const tick = () => {
-        const secs = (Date.now() - new Date(activeEntry.start_time).getTime()) / 1000;
-        setElapsed(secs);
-        if (secs >= WARN_SECONDS && !warnedRef.current) {
+        const currentSecs = (Date.now() - startMs) / 1000;
+        setElapsed(baseSecs + currentSecs);
+        if (currentSecs >= WARN_SECONDS && !warnedRef.current) {
           warnedRef.current = true;
           triggerWarning(project.name);
         }
@@ -43,7 +45,7 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
       setDescription('');
     }
     return () => clearInterval(intervalRef.current);
-  }, [isRunning, activeEntry?.start_time]);
+  }, [isRunning, activeEntry?.start_time, activeEntry?.total_seconds]);
 
   function triggerWarning(name) {
     if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
@@ -126,7 +128,7 @@ export default function ProjectCard({ project, activeEntry, lastEntry, companies
       <div className="timer-section">
         <div className="timer-display">
           <div className={`timer-elapsed${isRunning ? ' running' : ''}`}>
-            {formatElapsed(isRunning ? elapsed : 0)}
+            {formatElapsed(isRunning ? elapsed : (lastEntry?.total_seconds || 0))}
           </div>
         </div>
         <button
